@@ -1,11 +1,11 @@
 import pytest
 from datetime import datetime
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, AsyncMock
 import aiohttp
 
-from local_flight_map.open_sky_api.client import OpenSkyApi
-from local_flight_map.open_sky_api.config import OpenSkyConfig
-from local_flight_map.open_sky_api.response_objects import OpenSkyStates, FlightTrack
+from local_flight_map.api.client import ApiClient
+from local_flight_map.api.config import ApiConfig
+from local_flight_map.api.response_objects import States, FlightTrack
 
 
 @pytest.fixture
@@ -20,9 +20,11 @@ def mock_response():
 
 @pytest.fixture
 async def api_client():
-    config = OpenSkyConfig(opensky_username="test",
-                            opensky_password="test")
-    async with OpenSkyApi(config=config) as client:
+    config = ApiConfig(
+        opensky_username="test",
+        opensky_password="test"
+    )
+    async with ApiClient(config=config) as client:
         yield client
 
 
@@ -60,7 +62,7 @@ async def test_get_states_success(api_client, mock_response):
         result = await api_client.get_states()
 
     assert result is not None
-    assert isinstance(result, OpenSkyStates)
+    assert isinstance(result, States)
     assert result.time == 1234567890
     assert len(result.states) == 1
     assert result.states[0].icao24 == 'abc123'
@@ -101,7 +103,7 @@ async def test_get_states_error(api_client, mock_response):
     mock_response.status = 404
     mock_response.json.return_value = None
 
-    with patch('aiohttp.ClientSession.get', return_value=mock_response), pytest.raises(Exception, match="Failed to get states: None"):
+    with patch('aiohttp.ClientSession.get', return_value=mock_response):
         result = await api_client.get_states()
         assert result is None
 
@@ -139,7 +141,7 @@ async def test_get_my_states_success(api_client, mock_response):
         result = await api_client.get_my_states()
 
     assert result is not None
-    assert isinstance(result, OpenSkyStates)
+    assert isinstance(result, States)
     assert result.time == 1234567890
     assert len(result.states) == 1
     assert result.states[0].icao24 == 'abc123'
@@ -148,22 +150,24 @@ async def test_get_my_states_success(api_client, mock_response):
 @pytest.mark.asyncio
 async def test_get_my_states_auth_required():
     # Create a new client without credentials
-    config = OpenSkyConfig()
-    async with OpenSkyApi(config=config) as client:
+    config = ApiConfig()
+    async with ApiClient(config=config) as client:
         with pytest.raises(ValueError, match="Authentication required for this operation"):
             await client.get_my_states()
 
 
 @pytest.mark.asyncio
 async def test_get_track_by_aircraft_success(api_client, mock_response):
+    start_time = int(datetime.now().timestamp())-10
+    end_time = int(datetime.now().timestamp())
     mock_data = {
         'icao24': 'abc123',
-        'startTime': 1234567890,
-        'endTime': 1234567899,
+        'startTime': start_time,
+        'endTime': end_time,
         'callsign': 'TEST123',
         'path': [
-            [1234567890, 30.0, 45.0, 1000.0, 90.0, False],
-            [1234567891, 31.0, 46.0, 2000.0, 91.0, False]
+            [start_time, 30.0, 45.0, 1000.0, 90.0, False],
+            [end_time, 31.0, 46.0, 2000.0, 91.0, False]
         ]
     }
     mock_response.json.return_value = mock_data
@@ -171,7 +175,7 @@ async def test_get_track_by_aircraft_success(api_client, mock_response):
     with patch('aiohttp.ClientSession.get', return_value=mock_response):
         result = await api_client.get_track_by_aircraft(
             icao24='abc123',
-            time=datetime.fromtimestamp(1234567890)
+            time=datetime.fromtimestamp(start_time)
         )
 
     assert result is not None
@@ -187,21 +191,22 @@ async def test_get_track_by_aircraft_success(api_client, mock_response):
 async def test_get_track_by_aircraft_error(api_client, mock_response):
     mock_response.status = 404
     mock_response.json.return_value = None
+    start_time = int(datetime.now().timestamp())-10
 
-    with patch('aiohttp.ClientSession.get', return_value=mock_response), pytest.raises(Exception, match="No data returned"):
+    with patch('aiohttp.ClientSession.get', return_value=mock_response):
         result = await api_client.get_track_by_aircraft(
             icao24='abc123',
-            time=datetime.fromtimestamp(1234567890)
+            time=datetime.fromtimestamp(start_time)
         )
         assert result is None
 
 
 @pytest.mark.asyncio
 async def test_context_manager():
-    config = OpenSkyConfig(username="test", password="test")
-    async with OpenSkyApi(config=config) as client:
+    config = ApiConfig(opensky_username="test", opensky_password="test")
+    async with ApiClient(config=config) as client:
         assert client._session is not None
         assert isinstance(client._session, aiohttp.ClientSession)
-    
+
     # Session should be closed after context manager exits
-    assert client._session is None 
+    assert client._session is None

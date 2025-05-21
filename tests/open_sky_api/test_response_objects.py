@@ -1,10 +1,6 @@
-import json
-import pytest
-from datetime import datetime
-
-from local_flight_map.open_sky_api.response_objects import (
+from local_flight_map.api.response_objects import (
     StateVector,
-    OpenSkyStates,
+    States,
     Waypoint,
     FlightTrack
 )
@@ -44,7 +40,7 @@ def test_state_vector_serialization():
     # Test to_json
     json_str = state.to_json()
     assert isinstance(json_str, str)
-    
+
     # Test from_json
     new_state = StateVector.from_json(json_str)
     assert new_state.icao24 == state.icao24
@@ -77,7 +73,7 @@ def test_open_sky_states_serialization():
         category=0
     )
 
-    states = OpenSkyStates(time=1234567890, states=[state1])
+    states = States(time=1234567890, states=[state1])
 
     # Test to_dict
     states_dict = states.to_dict()
@@ -90,7 +86,7 @@ def test_open_sky_states_serialization():
     assert isinstance(json_str, str)
 
     # Test from_json
-    new_states = OpenSkyStates.from_json(json_str)
+    new_states = States.from_json(json_str)
     assert new_states.time == states.time
     assert len(new_states.states) == 1
     assert new_states.states[0].icao24 == state1.icao24
@@ -146,8 +142,8 @@ def test_flight_track_serialization():
     # Create test FlightTrack
     track = FlightTrack(
         icao24="abc123",
-        start_time=1234567890,
-        end_time=1234567899,
+        startTime=1234567890,
+        endTime=1234567899,
         callsign="TEST123",
         path=[waypoint1, waypoint2]
     )
