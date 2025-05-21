@@ -1,0 +1,22 @@
+{
+    "cSpell.words": [
+        "addopts",
+        "aiohttp",
+        "asyncio",
+        "baro",
+        "callsign",
+        "horiz",
+        "Horiz",
+        "KJFK",
+        "KLAX",
+        "lamax",
+        "lamin",
+        "lomin",
+        "opensky",
+        "pydantic",
+        "pytest",
+        "pythonpath",
+        "setuptools",
+        "testpaths"
+    ]
+}
