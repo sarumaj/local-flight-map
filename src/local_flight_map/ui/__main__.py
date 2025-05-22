@@ -16,6 +16,7 @@ from ..api.opensky import StateVector
 from ..api import ApiClient, ApiConfig
 
 
+# TODO: use folium relatime plugin with geojson
 class StandardizedAircraft(NamedTuple):
     icao24: str
     callsign: str
@@ -216,9 +217,6 @@ class MapInterface:
 
     def add_plane_marker(self, plane_marker: folium.Marker):
         plane_marker.add_to(self.cluster_group)
-
-    def add_flight_track(self, flight_track: folium.PolyLine):
-        flight_track.add_to(self.map)
 
     def draw_bbox(self, bbox: BBox):
         """
