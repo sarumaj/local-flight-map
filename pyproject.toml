@@ -21,6 +21,7 @@ dependencies = [
     "aiohttp==3.11.18",
     "asyncio==3.4.3",
     "async-lru==2.0.5",
+    "jmespath==1.0.1",
     "python-fasthtml==0.12.18",
     "folium==0.19.6",
     "nest-asyncio==1.6.0",
