@@ -110,7 +110,7 @@ class MapInterface:
             location=(center.latitude, center.longitude),
             zoom_start=zoom,
         )
-        self.addtional_tiles = [
+        self.additional_tiles = [
             folium.TileLayer(
                 name="OPNVKarte",
                 tiles='https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png',
@@ -122,7 +122,7 @@ class MapInterface:
                 max_zoom=18
             )
         ]
-        for tile in self.addtional_tiles:
+        for tile in self.additional_tiles:
             tile.add_to(self.map)
         self.mouse_position = folium.plugins.MousePosition(
             position="topright",

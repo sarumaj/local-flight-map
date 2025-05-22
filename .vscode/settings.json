@@ -5,6 +5,7 @@
         "asyncio",
         "baro",
         "callsign",
+        "fasthtml",
         "horiz",
         "Horiz",
         "Karte",
