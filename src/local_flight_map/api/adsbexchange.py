@@ -122,6 +122,72 @@ class AircraftProperties(ResponseObject):
     gpsOkLat: Optional[float]
     gpsOkLon: Optional[float]
 
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    self.gpsOkLon if self.gpsOkLon else self.lon,
+                    self.gpsOkLat if self.gpsOkLat else self.lat
+                ]
+            },
+            "properties": {
+                "icao24_code": self.hex,
+                "callsign": self.flight,
+                "registration": self.r,
+                "type": self.t,
+                "baro_altitude": self.alt_baro,
+                "geom_altitude": self.alt_geom,
+                "ground_speed": self.gs,
+                "indicated_airspeed": self.ias,
+                "true_airspeed": self.tas,
+                "mach": self.mach,
+                "wind_direction": self.wd,
+                "wind_speed": self.ws,
+                "outside_air_temperature": self.oat,
+                "total_air_temperature": self.tat,
+                "track_angle": self.track,
+                "track_rate": self.track_rate,
+                "roll_angle": self.roll,
+                "magnetic_heading": self.mag_heading,
+                "true_heading": self.true_heading,
+                "baro_rate_of_climb_descent": self.baro_rate,
+                "geom_rate_of_climb_descent": self.geom_rate,
+                "squawk_code": self.squawk,
+                "emergency_status": self.emergency,
+                "category": self.category,
+                "qnh_pressure": self.nav_qnh,
+                "mcp_altitude": self.nav_altitude_mcp,
+                "fms_altitude": self.nav_altitude_fms,
+                "heading": self.nav_heading,
+                "navigation_modes": self.nav_modes,
+                "latitude": self.lat,
+                "longitude": self.lon,
+                "navigation_integrity_category": self.nic,
+                "radius_of_containment": self.rc,
+                "time_since_last_position_update": self.seen_pos,
+                "version": self.version,
+                "baro_navigation_integrity_category": self.nic_baro,
+                "navigation_accuracy_category_for_position": self.nac_p,
+                "navigation_accuracy_category_for_velocity": self.nac_v,
+                "surveillance_integrity_level": self.sil,
+                "surveillance_integrity_level_type": self.sil_type,
+                "geometric_vertical_accuracy": self.gva,
+                "system_design_assurance": self.sda,
+                "alert_flag": self.alert,
+                "special_position_indicator_flag": self.spi,
+                "multilateration_sources": self.mlat,
+                "tisb_sources": self.tisb,
+                "number_of_messages_received": self.messages,
+                "time_since_last_update": self.seen,
+                "received_signal_strength_indicator": self.rssi,
+                "time_since_last_gps_update": self.gpsOkBefore,
+                "latitude_of_gps_update": self.gpsOkLat,
+                "longitude_of_gps_update": self.gpsOkLon
+            }
+        }
+
 
 @dataclass
 class AdsbExchangeResponse(ResponseObject):
@@ -153,6 +219,12 @@ class AdsbExchangeResponse(ResponseObject):
             ctime=data['ctime'],
             ptime=data['ptime']
         )
+    
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "FeatureCollection",
+            "features": [aircraft.to_geojson() for aircraft in self.ac]
+        }
 
 
 class AdsbExchangeConfig(BaseConfig):
@@ -220,7 +292,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) or None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_aircraft_from_adsbexchange_by_icao24(
         self,
         icao24: str
@@ -240,7 +312,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_aircraft_from_adsbexchange_by_callsign(
         self,
         callsign: str
@@ -260,7 +332,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_aircraft_from_adsbexchange_by_squawk(
         self,
         squawk: str
@@ -280,7 +352,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_military_aircrafts_from_adsbexchange(
         self,
     ) -> Optional[AdsbExchangeResponse]:
@@ -294,7 +366,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_aircraft_from_adsbexchange_within_range(
         self,
         center: Location,

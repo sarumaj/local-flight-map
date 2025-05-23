@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from async_lru import alru_cache
 from dataclasses import dataclass
 from pydantic import Field
@@ -28,6 +28,28 @@ class AircraftInformation(ResponseObject):
     Registration: str
     Type: str
 
+    def patch_geojson_properties(self, geojson: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Patch the properties of a GeoJSON feature with the aircraft information.
+
+        Args:
+            geojson: The GeoJSON feature to patch.
+
+        Returns: 
+            The patched GeoJSON feature.
+        """
+        geojson["properties"] = geojson.get("properties", {})
+        geojson["properties"].update({
+            "icao_type_code": self.ICAOTypeCode,
+            "manufacturer": self.Manufacturer,
+            "mode_s": self.ModeS,
+            "operator_flag_code": self.OperatorFlagCode,
+            "registered_owners": self.RegisteredOwners,
+            "registration": self.Registration,
+            "type": self.Type
+        })
+        return geojson
+
 
 @dataclass
 class RouteInformation(ResponseObject):
@@ -42,6 +64,18 @@ class RouteInformation(ResponseObject):
     flight: str
     route: str
     updatetime: int
+
+    def patch_geojson_properties(self, geojson: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Patch the properties of a GeoJSON feature with the route information.
+        """
+        geojson["properties"] = geojson.get("properties", {})
+        geojson["properties"].update({
+            "flight": self.flight,
+            "route": self.route,
+            "update_time": self.updatetime
+        })
+        return geojson
 
 
 @dataclass
@@ -65,6 +99,24 @@ class AirportInformation(ResponseObject):
     latitude: float
     longitude: float
     region_name: str
+
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [self.longitude, self.latitude]
+            },
+            "properties": {
+                "airport": self.airport,
+                "country_code": self.country_code,
+                "iata": self.iata,
+                "icao": self.icao,
+                "latitude": self.latitude,
+                "longitude": self.longitude,
+                "region_name": self.region_name
+            }
+        }
 
 
 class HexDbConfig(BaseConfig):

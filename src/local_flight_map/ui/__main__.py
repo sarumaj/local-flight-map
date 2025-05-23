@@ -5,187 +5,33 @@ from PIL import Image
 import io
 import base64
 from pathlib import Path
-from typing import Union, NamedTuple
+from typing import Union, NamedTuple, Dict, Any
 from fasthtml.common import Div, H3,  Table, Th, Tr, Td
 import asyncio
+import fastapi
+from fastapi.staticfiles import StaticFiles
+from panel.io.fastapi import add_applications
+import uvicorn
 
 from ..api.base import Location, BBox
-from ..api.adsbexchange import AircraftProperties
-from ..api.hexdb import AircraftInformation, RouteInformation
-from ..api.opensky import StateVector
 from ..api import ApiClient, ApiConfig
 
 
-# TODO: use folium relatime plugin with geojson
-class StandardizedAircraft(NamedTuple):
-    icao24: str
-    callsign: str
-    origin_country: str
-    latitude: float
-    longitude: float
-    velocity: float
-    direction: float
-    vertical_rate: float
-    baro_altitude: float
-    geo_altitude: float
-    type: str
-    manufacturer: str
-    route: str
-
-    @classmethod
-    def standardize_aircraft(
-        cls, aircraft:
-        Union[StateVector, AircraftProperties],
-        aircraft_information: AircraftInformation,
-        route_information: RouteInformation,
-    ) -> 'StandardizedAircraft':
-        if isinstance(aircraft, StateVector):
-            return StandardizedAircraft(
-                icao24=aircraft.icao24,
-                callsign=aircraft.callsign.strip() if aircraft.callsign else 'unknown',
-                origin_country=aircraft.origin_country,
-                latitude=aircraft.latitude,
-                longitude=aircraft.longitude,
-                velocity=aircraft.velocity,
-                direction=aircraft.true_track,
-                vertical_rate=aircraft.vertical_rate,
-                baro_altitude=aircraft.baro_altitude,
-                geo_altitude=aircraft.geo_altitude,
-                type=aircraft_information.Type if aircraft_information else None,
-                manufacturer=aircraft_information.Manufacturer if aircraft_information else None,
-                route=route_information.Route if route_information else None,
-            )
-        elif isinstance(aircraft, AircraftProperties):
-            return StandardizedAircraft(
-                icao24=aircraft.hex,
-                callsign=aircraft.flight,
-                origin_country="",
-                latitude=aircraft.lat,
-                longitude=aircraft.lon,
-                velocity=aircraft.gs,
-                direction=aircraft.true_heading,
-                vertical_rate=aircraft.baro_rate,
-                baro_altitude=aircraft.alt_baro,
-                geo_altitude=aircraft.alt_geom,
-                type=aircraft_information.Type if aircraft_information else None,
-                manufacturer=aircraft_information.Manufacturer if aircraft_information else None,
-                route=route_information.Route if route_information else None,
-            )
-
-
-class RotatedIcon(folium.DivIcon):
-    def __init__(self, image_path: str, rotation_angle: float = 0):
-        """
-        Initialize a rotated icon for aircraft markers.
-
-        Args:
-            image_path: Path to the aircraft icon image
-            rotation_angle: Rotation angle in degrees (0 = North, 90 = East)
-        """
-        with Image.open(image_path) as img:
-            img = img.convert('RGBA')
-            rotated_img = img.rotate(-rotation_angle, expand=True, resample=Image.Resampling.BICUBIC)
-
-            buffered = io.BytesIO()
-            rotated_img.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode()
-            icon_html = f'<img src="data:image/png;base64,{img_str}" style="width:100%;height:100%;">'
-
-            super().__init__(
-                html=icon_html,
-                icon_size=(48, 48),
-                icon_anchor=(24, 24)
-            )
-
-
-class PlaneMarker(folium.Marker):
-    def __init__(
-        self,
-        aircraft: StandardizedAircraft,
-        icon_path: str = Path(__file__).parent / "icons" / "civilian_plane.png",
-        icon_angle: float = 45,
-    ):
-        """
-        Initialize a plane marker with a rotatable icon.
-
-        Args:
-            state_vector: StateVector object containing aircraft data
-            aircraft_information: AircraftInformation object containing aircraft information
-            icon_path: Path to the aircraft icon image
-            icon_angle: Angle of the icon
-        """
-        self._icon_path = icon_path
-        self._icon_angle = icon_angle
-        self._aircraft = aircraft
-
-        desc_props = {
-            "ICAO ID": self._aircraft.icao24,
-        }
-
-        if self._aircraft.callsign:
-            desc_props["Callsign"] = self._aircraft.callsign
-
-        if self._aircraft.origin_country:
-            desc_props["Origin"] = self._aircraft.origin_country
-
-        if self._aircraft.latitude and self._aircraft.longitude:
-            desc_props["Position"] = (
-                f"{round(self._aircraft.latitude, 2):,.2f}°N, "
-                f"{round(self._aircraft.longitude, 2):,.2f}°E"
-            )
-
-        if self._aircraft.velocity:
-            desc_props["Ground Speed"] = (
-                f"{round(self._aircraft.velocity, 2):,.2f} m/s "
-                f"({round(self._aircraft.velocity * 1.94384, 2):,.2f} kts)"
-            )
-
-        if self._aircraft.vertical_rate:
-            desc_props["Vertical Rate"] = (
-                f"{round(self._aircraft.vertical_rate, 2):,.2f} m/s "
-                f"({round(self._aircraft.vertical_rate * 196.8503937007874, 2):,.2f} ft/min)"
-            )
-
-        if self._aircraft.baro_altitude:
-            desc_props["Baro Altitude"] = (
-                f"{round(self._aircraft.baro_altitude, 2):,.2f} m "
-                f"({round(self._aircraft.baro_altitude * 3.28084, 2):,.2f} ft)"
-            ) if self._aircraft.baro_altitude != "ground" else self._aircraft.baro_altitude
-
-        if self._aircraft.geo_altitude:
-            desc_props["Geo Altitude"] = (
-                f"{round(self._aircraft.geo_altitude, 2):,.2f} m "
-                f"({round(self._aircraft.geo_altitude * 3.28084, 2):,.2f} ft)"
-            ) if self._aircraft.geo_altitude != "ground" else self._aircraft.geo_altitude
-
-        if self._aircraft.type:
-            desc_props["Type"] = self._aircraft.type
-
-        if self._aircraft.manufacturer:
-            desc_props["Manufacturer"] = self._aircraft.manufacturer
-
-        self._description = Div(
-            H3("Aircraft Information"),
-            Table(*[
-                Tr(Th(key), Td(value)) for key, value in desc_props.items()
-            ])
-        )
-        super().__init__(
-            location=(self._aircraft.latitude, self._aircraft.longitude),
-            popup=folium.Popup(html=str(self._description), max_width=200),
-            tooltip=folium.Tooltip(str(self._description)),
-            icon=RotatedIcon(icon_path, (self._aircraft.direction or 0) - self._icon_angle)
-        )
-
-
 class MapInterface:
-    def __init__(self, center: Location, zoom: int = 12):
+    app: fastapi.FastAPI = fastapi.FastAPI()
+
+    def __init__(self, *, center: Location, zoom: int = 12, radius: float = 50, client: ApiClient):
         self.center = center
         self.zoom = zoom
+        self.radius = radius
+        self.client = client
         self.map = folium.Map(
             location=(center.latitude, center.longitude),
             zoom_start=zoom,
         )
+        # Mount static files directory
+        self.app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+        self.app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
         self.additional_tiles = [
             folium.TileLayer(
                 name="OPNVKarte",
@@ -194,8 +40,7 @@ class MapInterface:
                     'Map <a href="https://memomaps.de/">memomaps.de</a> '
                     '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; '
                     '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                ),
-                max_zoom=18
+                )
             )
         ]
         for tile in self.additional_tiles:
@@ -212,11 +57,70 @@ class MapInterface:
         self.mouse_position.add_to(self.map)
         self.cluster_group = MarkerCluster(control=False)
         self.cluster_group.add_to(self.map)
-        self.control_layer = folium.LayerControl()
-        self.control_layer.add_to(self.map)
+        #self.control_layer = folium.LayerControl()
+        #self.control_layer.add_to(self.map)
+        self.realtime = folium.plugins.Realtime(
+            folium.JsCode("""
+                function(responseHandler, errorHandler) {
+                    var url = '/aircrafts';
 
-    def add_plane_marker(self, plane_marker: folium.Marker):
-        plane_marker.add_to(self.cluster_group)
+                    fetch(url)
+                    .then((response) => {
+                        return response.json().then((data) => {
+                            return data;
+                        })
+                    })
+                    .then(responseHandler)
+                    .catch(errorHandler);
+                }
+            """),
+            get_feature_id=folium.JsCode("(f) => { return f.properties.icao24_code }"),
+            point_to_layer=folium.JsCode("""
+                function(feature, latlng) {
+                    // Create a custom icon with rotation
+                    var icon = L.divIcon({
+                        className: 'rotated-icon',
+                        html: `<img src="/static/icons/civilian_plane.png" style="width:48px;height:48px;transform:rotate(${(feature.properties.track_angle || 0) - 45}deg);">`,
+                        iconSize: [48, 48],
+                        iconAnchor: [24, 24]
+                    });
+
+                    // Create the marker with the custom icon
+                    var marker = L.marker(latlng, {icon: icon});
+
+                    // Create popup content
+                    var popupContent = '<div class="aircraft-info"><h3>Aircraft Information</h3><table>';
+                    for (var key in feature.properties) {
+                        popupContent += `<tr><th>${key}</th><td>${feature.properties[key]}</td></tr>`;
+                    }
+                    popupContent += '</table></div>';
+
+                    // Add popup and tooltip
+                    marker.bindPopup(popupContent, {maxWidth: 200});
+                    marker.bindTooltip(popupContent);
+
+                    return marker;
+                }
+            """),
+            container=self.cluster_group,
+            interval=1000,
+        )
+        self.realtime.add_to(self.map)
+        self.draw_bbox(BBox.get_bbox_by_radius(self.center, self.radius))
+
+    async def get_aircrafts_geojson(self):
+        print("Getting aircrafts geojson")
+        states = await self.client.get_aircraft_from_adsbexchange_within_range(self.center, self.radius)
+        states_geojson = states.to_geojson()
+        for index, state_geojson in enumerate(states_geojson["features"]):
+            aircraft_info = await self.client.get_aircraft_information_from_hexdb(state_geojson["properties"]["icao24_code"])
+            if aircraft_info is not None:
+                aircraft_info.patch_geojson_properties(state_geojson)
+            route_info = await self.client.get_route_information_from_hexdb(state_geojson["properties"]["icao24_code"])
+            if route_info is not None:
+                route_info.patch_geojson_properties(state_geojson)
+            states_geojson["features"][index] = state_geojson
+        return states_geojson
 
     def draw_bbox(self, bbox: BBox):
         """
@@ -243,25 +147,18 @@ class MapInterface:
         map_pane = pn.pane.plot.Folium(self.map, sizing_mode="stretch_both")
         return map_pane
 
-    def serve(self, port: int = 5006):
-        return pn.serve(self.create_map_widget(), port=port)
+    async def serve(self, port: int = 5006):
+        add_applications({"/": self.create_map_widget()}, app=self.app, title="Local Flight Map")
+        config = uvicorn.Config(self.app, host="0.0.0.0", port=port)
+        server = uvicorn.Server(config)
+        await server.serve()
 
 
-async def amain(map_interface: MapInterface, radius: float = 100):
+async def amain():
     config = ApiConfig()
     async with ApiClient(config) as client:
-        bbox = BBox.get_bbox_by_radius(map_interface.center, radius)
-        map_interface.draw_bbox(bbox)
-        states = await client.get_aircraft_from_adsbexchange_within_range(map_interface.center, radius)
-        for state in states.ac:
-            aircraft_info = await client.get_aircraft_information_from_hexdb(state.hex)
-            route_info = await client.get_route_information_from_hexdb(state.hex)
-            standardized_aircraft = StandardizedAircraft.standardize_aircraft(state, aircraft_info, route_info)
-            print(standardized_aircraft, state, aircraft_info, route_info, end="\n\n", sep="\n")
-            if standardized_aircraft.longitude is not None and standardized_aircraft.latitude is not None:
-                map_interface.add_plane_marker(PlaneMarker(standardized_aircraft))
+        map_interface = MapInterface(center=Location(50.15, 8.3166667), zoom=12, radius=50, client=client)
+        await map_interface.serve()
 
 if __name__ == "__main__":
-    map_interface = MapInterface(Location(50.15, 8.3166667), 12)
-    asyncio.run(amain(map_interface))
-    map_interface.serve()
+    asyncio.run(amain())

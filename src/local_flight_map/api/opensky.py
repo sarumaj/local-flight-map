@@ -83,6 +83,35 @@ class StateVector(ResponseObject):
     position_source: int
     category: Optional[int]
 
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [self.longitude, self.latitude]
+            },
+            "properties": {
+                "icao24_code": self.icao24,
+                "callsign": self.callsign,
+                "origin_country": self.origin_country,
+                "time_position": self.time_position,
+                "last_contact": self.last_contact,
+                "longitude": self.longitude,
+                "latitude": self.latitude,
+                "baro_altitude": self.baro_altitude,
+                "on_ground": self.on_ground,
+                "velocity": self.velocity,
+                "track_angle": self.true_track,
+                "vertical_rate": self.vertical_rate,
+                "sensors": self.sensors,
+                "geo_altitude": self.geo_altitude,
+                "squawk_code": self.squawk,
+                "special_position_indicator_flag": self.spi,
+                "position_source": self.position_source,
+                "category": self.category,
+            }
+        }
+
 
 @dataclass
 class States(ResponseObject):
@@ -114,6 +143,12 @@ class States(ResponseObject):
             ]
         )
 
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "FeatureCollection",
+            "features": [state.to_geojson() for state in self.states]
+        }
+
 
 @dataclass
 class Waypoint(ResponseObject):
@@ -134,6 +169,23 @@ class Waypoint(ResponseObject):
     baro_altitude: Optional[float]
     true_track: Optional[float]
     on_ground: bool
+
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [self.longitude, self.latitude]
+            },
+            "properties": {
+                "time": self.time,
+                "latitude": self.latitude,
+                "longitude": self.longitude,
+                "baro_altitude": self.baro_altitude,
+                "true_track": self.true_track,
+                "on_ground": self.on_ground
+            }
+        }
 
 
 @dataclass
@@ -173,6 +225,21 @@ class FlightTrack(ResponseObject):
                 for waypoint in data['path']
             ]
         )
+    
+    def to_geojson(self) -> Dict[str, Any]:
+        return {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[waypoint.longitude, waypoint.latitude] for waypoint in self.path]
+            },
+            "properties": {
+                "icao24_code": self.icao24,
+                "callsign": self.callsign,
+                "start_time": self.startTime,
+                "end_time": self.endTime,
+            }
+        }
 
 
 class OpenSkyConfig(BaseConfig):
@@ -367,7 +434,7 @@ class OpenSkyClient(BaseClient):
             data = await self._handle_response(response)
             return States.from_dict(data) if data is not None else None
 
-    @alru_cache(ttl=5)
+    @alru_cache(ttl=1)
     async def get_track_by_aircraft_from_opensky(
         self,
         icao24: str,
