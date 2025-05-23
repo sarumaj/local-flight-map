@@ -292,7 +292,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) or None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_by_icao24(
         self,
         icao24: str
@@ -312,7 +312,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_by_callsign(
         self,
         callsign: str
@@ -332,7 +332,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_by_squawk(
         self,
         squawk: str
@@ -352,7 +352,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_military_aircrafts_from_adsbexchange(
         self,
     ) -> Optional[AdsbExchangeResponse]:
@@ -366,7 +366,7 @@ class AdsbExchangeClient(BaseClient):
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_within_range(
         self,
         center: Location,

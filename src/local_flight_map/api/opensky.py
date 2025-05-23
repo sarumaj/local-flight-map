@@ -434,7 +434,7 @@ class OpenSkyClient(BaseClient):
             data = await self._handle_response(response)
             return States.from_dict(data) if data is not None else None
 
-    @alru_cache(ttl=1)
+    @alru_cache(ttl=0.1)
     async def get_track_by_aircraft_from_opensky(
         self,
         icao24: str,
