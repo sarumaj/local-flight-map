@@ -222,10 +222,10 @@ class FlightTrack(ResponseObject):
             path=[
                 Waypoint.from_dict(waypoint) if isinstance(waypoint, dict) else
                 Waypoint.from_list(waypoint)
-                for waypoint in data['path']
+                for waypoint in data['path'] or []
             ]
         )
-    
+
     def to_geojson(self) -> Dict[str, Any]:
         return {
             "type": "Feature",
@@ -432,7 +432,7 @@ class OpenSkyClient(BaseClient):
         await self._apply_opensky_rate_limit(self.get_my_states_from_opensky)
         async with self._session.get("/api/states/own", params=params) as response:
             data = await self._handle_response(response)
-            return States.from_dict(data) if data is not None else None
+            return States.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
     async def get_track_by_aircraft_from_opensky(

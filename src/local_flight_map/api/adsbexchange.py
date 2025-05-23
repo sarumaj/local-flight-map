@@ -212,14 +212,14 @@ class AdsbExchangeResponse(ResponseObject):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AdsbExchangeResponse':
         return cls(
-            ac=[AircraftProperties.from_dict(aircraft) for aircraft in data['ac']],
+            ac=[AircraftProperties.from_dict(aircraft) for aircraft in data['ac'] or []],
             msg=data['msg'],
             now=data['now'],
             total=data['total'],
             ctime=data['ctime'],
             ptime=data['ptime']
         )
-    
+
     def to_geojson(self) -> Dict[str, Any]:
         return {
             "type": "FeatureCollection",
@@ -290,7 +290,7 @@ class AdsbExchangeClient(BaseClient):
             registration=registration.strip()
         )) as response:
             data = await self._handle_response(response)
-            return AdsbExchangeResponse.from_dict(data) or None
+            return AdsbExchangeResponse.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_by_icao24(

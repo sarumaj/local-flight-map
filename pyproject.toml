@@ -23,7 +23,6 @@ dependencies = [
     "async-lru==2.0.5",
     "bokeh-fastapi==0.1.4",
     "fastapi==0.115.12",
-    "jmespath==1.0.1",
     "python-fasthtml==0.12.18",
     "folium==0.19.6",
     "nest-asyncio==1.6.0",

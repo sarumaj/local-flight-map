@@ -35,7 +35,7 @@ class AircraftInformation(ResponseObject):
         Args:
             geojson: The GeoJSON feature to patch.
 
-        Returns: 
+        Returns:
             The patched GeoJSON feature.
         """
         geojson["properties"] = geojson.get("properties", {})

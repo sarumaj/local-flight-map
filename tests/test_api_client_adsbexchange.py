@@ -5,7 +5,7 @@ from local_flight_map.api.adsbexchange import (
     AdsbExchangeClient,
     AdsbExchangeConfig,
     AdsbExchangeResponse,
-    Aircraft,
+    AircraftProperties,
     Location
 )
 
@@ -121,7 +121,7 @@ class TestAdsbExchangeClient:
 
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
                 assert aircraft.type == "adsb_icao"
                 assert aircraft.flight == "SWA123"
@@ -201,7 +201,7 @@ class TestAdsbExchangeClient:
                 assert isinstance(result, AdsbExchangeResponse)
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
                 assert aircraft.flight == "SWA123"
                 assert aircraft.r == "N12345"
@@ -234,7 +234,7 @@ class TestAdsbExchangeClient:
                 assert isinstance(result, AdsbExchangeResponse)
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
                 assert aircraft.flight == "SWA123"
                 assert aircraft.r == "N12345"
@@ -267,7 +267,7 @@ class TestAdsbExchangeClient:
                 assert isinstance(result, AdsbExchangeResponse)
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
                 assert aircraft.squawk == "1234"
 
@@ -299,7 +299,7 @@ class TestAdsbExchangeClient:
                 assert isinstance(result, AdsbExchangeResponse)
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
 
                 # Verify the API call
@@ -331,7 +331,7 @@ class TestAdsbExchangeClient:
                 assert isinstance(result, AdsbExchangeResponse)
                 assert len(result.ac) == 1
                 aircraft = result.ac[0]
-                assert isinstance(aircraft, Aircraft)
+                assert isinstance(aircraft, AircraftProperties)
                 assert aircraft.hex == "a83547"
 
                 # Verify the API call

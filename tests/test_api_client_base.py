@@ -3,33 +3,19 @@ import math
 import aiohttp
 from dataclasses import dataclass
 from unittest.mock import AsyncMock, Mock
-from local_flight_map.api.base import Location, BBox, ResponseObject, BaseClient, BaseProperty
+from local_flight_map.api.base import Location, BBox, ResponseObject, BaseClient
 
 
-class TestBaseProperty:
-    def test_base_property_creation(self):
-        property = BaseProperty(name="test", description="test", required=True, origins=["test"], format="test")
-        assert property.name == "test"
-        assert property.description == "test"
-        assert property.required is True
-        assert property.origins == ["test"]
-        assert property.format == "test"
+class TestLocation:
+    def test_location_creation(self):
+        location = Location(latitude=51.5074, longitude=-0.1278)
+        assert location.latitude == 51.5074
+        assert location.longitude == -0.1278
 
-    def test_base_property_str(self):
-        property = BaseProperty(name="test", description="test", required=True, origins=["test"], format="test")
-        assert str(property) == "test"
-
-
-class TestCenter:
-    def test_center_creation(self):
-        center = Location(latitude=51.5074, longitude=-0.1278)
-        assert center.latitude == 51.5074
-        assert center.longitude == -0.1278
-
-    def test_center_immutability(self):
-        center = Location(latitude=51.5074, longitude=-0.1278)
+    def test_location_immutability(self):
+        location = Location(latitude=51.5074, longitude=-0.1278)
         with pytest.raises(AttributeError):
-            center.latitude = 52.0
+            location.latitude = 52.0
 
 
 class TestBBox:
