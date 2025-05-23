@@ -1,3 +1,3 @@
-from .interface import MapInterface
+from .map import MapInterface
 
 __all__ = [k for k, v in globals().items() if v in (MapInterface,)]

@@ -1,9 +1,9 @@
 import asyncio
 import argparse
 
-from ..api.base import Location
-from ..api import ApiClient, ApiConfig
-from .map.interface import MapInterface
+from .api.base import Location
+from .api import ApiClient, ApiConfig
+from .ui import MapInterface
 
 
 async def amain(args: argparse.Namespace):

@@ -23,7 +23,6 @@ dependencies = [
     "async-lru==2.0.5",
     "bokeh-fastapi==0.1.4",
     "fastapi==0.115.12",
-    "python-fasthtml==0.12.18",
     "folium==0.19.6",
     "nest-asyncio==1.6.0",
     "panel==1.7.0",
@@ -31,6 +30,9 @@ dependencies = [
     "pydantic-settings==2.9.1",
     "uvicorn==0.34.2"
 ]
+
+[project.scripts]
+local-flight-map = "local_flight_map.__main__:main"
 
 [project.optional-dependencies]
 test = [
