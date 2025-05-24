@@ -2,9 +2,8 @@ import folium
 from folium.plugins import MousePosition, MiniMap
 from dataclasses import dataclass
 
-from ..folium.realtime import Realtime
-from ..folium.markercluser import MarkerCluster
-from ...api.base import BBox
+from ..folium import Realtime, MarkerCluster
+from ...api import BBox
 
 
 class MapLayers:
@@ -112,11 +111,3 @@ class MapLayers:
             weight=2,
             opacity=0.7
         ).add_to(self._map)
-
-    @property
-    def cluster_group(self):
-        return self._layers.cluster_group
-
-    @property
-    def realtime(self):
-        return self._layers.realtime

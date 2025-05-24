@@ -103,12 +103,15 @@ class DataSource:
             args = (config.center, config.radius)
             method = self._client.get_aircraft_from_adsbexchange_within_range
         elif config.provider == 'opensky':
-            args = (config.bbox, )
+            args = (0, None, config.bbox)
             method = self._client.get_states_from_opensky
         else:
             raise ValueError(f"Invalid provider: {config.provider}")
 
         aircrafts: Union[AdsbExchangeResponse, States] = await method(*args)
+        if aircrafts is None:
+            return None
+
         feature_collection: Dict[str, Any] = aircrafts.to_geojson()
         feature_collection["features"] = [
             feature for i in range(0, len(feature_collection["features"]), self._batch_size)
