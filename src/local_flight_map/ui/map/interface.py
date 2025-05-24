@@ -2,13 +2,22 @@ import folium
 import panel as pn
 import uvicorn
 from panel.io.fastapi import add_applications
+import fastapi
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+import logging
 
 from ...api.base import Location
 from ...api import ApiClient
 from .config import MapConfig
 from .layers import MapLayers
-from .server import MapServer
-from .data import MapData
+from .data import DataSource
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("uvicorn")
 
 
 class MapInterface:
@@ -17,8 +26,24 @@ class MapInterface:
     def __init__(self, *, center: Location, radius: float = 50, client: ApiClient):
         self._config = MapConfig(center=center, radius=radius)
         self._client = client
-        self._data = MapData(client)
-        self._server = MapServer()
+        self._data = DataSource(client)
+
+        # Setup FastAPI app
+        self._app = fastapi.FastAPI()
+        self._app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["GET", "HEAD", "OPTIONS"],
+            allow_headers=["*"],
+        )
+        self._app.mount(
+            "/ui/static",
+            StaticFiles(directory=str(Path(__file__).parent / "static")),
+            name="static"
+        )
+        self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
+        add_applications({"/": self.create_map_widget}, app=self._app, title="Local Flight Map")
 
         # Initialize map
         self._map = folium.Map(
@@ -41,9 +66,6 @@ class MapInterface:
         self._layers.add_to_map()
         self._layers.draw_bbox()
 
-        # Setup server routes
-        self._server.app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
-
     async def __aenter__(self):
         """Enter the async context manager"""
         return self
@@ -53,12 +75,21 @@ class MapInterface:
         if hasattr(self._client, '__aexit__'):
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def get_aircrafts_geojson(self):
+    async def get_aircrafts_geojson(self) -> JSONResponse:
         """API endpoint to get aircraft data"""
-        return await self._data.get_aircrafts_geojson(
-            Location(latitude=self._map.location[0], longitude=self._map.location[1]),
-            self._map.options["radius"]
-        )
+        try:
+            aircrafts = await self._data.get_aircrafts_geojson(self._config)
+            logger.info(f"Aircrafts: {len(aircrafts['features'])}")
+            return JSONResponse(
+                content=aircrafts,
+                status_code=200
+            )
+        except Exception as e:
+            logger.error(f"Error processing aircraft data: {e}")
+            return JSONResponse(
+                content={"error": str(e)},
+                status_code=500
+            )
 
     def create_map_widget(self):
         """Create the map widget for Panel"""
@@ -66,14 +97,12 @@ class MapInterface:
 
     async def serve(self, port: int = 5006):
         """Start the server"""
-        add_applications({"/map": self.create_map_widget}, app=self._server.app, title="Local Flight Map")
-        config = uvicorn.Config(self._server.app, host="0.0.0.0", port=port)
+        config = uvicorn.Config(self._app, host="localhost", port=port)
         server = uvicorn.Server(config)
 
         try:
             await server.serve()
         finally:
-            # Ensure client sessions are closed when server stops
             if hasattr(self._client, 'close'):
                 await self._client.close()
             elif hasattr(self._client, '__aexit__'):

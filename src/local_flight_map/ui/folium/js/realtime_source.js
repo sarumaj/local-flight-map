@@ -1,11 +1,16 @@
 (responseHandler, errorHandler) => {
   var url = '/aircrafts';
 
-  fetch(url)
-    .then((response) => response.json())
-    .then((data) => {
-      return data;
-    })
-    .then(responseHandler)
-    .catch(errorHandler);
+  function fetchData() {
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        responseHandler(data);
+      })
+      .catch((error) => {
+        errorHandler(error);
+      });
+  }
+
+  fetchData();
 }

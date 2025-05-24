@@ -10,6 +10,7 @@ class MapConfig:
     zoom_start: int = 12
     max_bounds: bool = True
     control_scale: bool = True
+    provider: str = "adsbexchange"
 
     @property
     def bbox(self) -> BBox:

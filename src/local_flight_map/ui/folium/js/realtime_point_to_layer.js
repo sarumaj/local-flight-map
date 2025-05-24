@@ -177,15 +177,15 @@
 
   // Add click handler to the clickable div
   icon.options.html = icon.options.html.replace('</div>',
-    `< div style = "
-position: absolute;
-top: -16px;
-left: -16px;
-right: -16px;
-bottom: -16px;
-z - index: 1000;
-cursor: pointer;
-" onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`
+    `<div style="
+      position: absolute;
+      top: -16px;
+      left: -16px;
+      right: -16px;
+      bottom: -16px;
+      z-index: 1000;
+      cursor: pointer;
+    " onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`
   );
 
   return marker;
