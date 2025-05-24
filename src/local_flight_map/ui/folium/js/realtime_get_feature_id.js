@@ -1,0 +1,1 @@
+(feature) => { return feature.properties.icao24_code }

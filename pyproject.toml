@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-flight-map"
+version = "0.0.0"
+description = "Open Air Traffic map based on ADS-B Exchange and Open Sky Data."
+requires-python = ">=3.12"
+authors = [
+    { name="Dawid Ciepiela", email="71898979+sarumaj@users.noreply.github.com" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+dependencies = [
+    "aiohttp==3.11.18",
+    "asyncio==3.4.3",
+    "async-lru==2.0.5",
+    "bokeh-fastapi==0.1.4",
+    "fastapi==0.115.12",
+    "folium==0.19.6",
+    "nest-asyncio==1.6.0",
+    "panel==1.7.0",
+    "pydantic==2.11.4",
+    "pydantic-settings==2.9.1",
+    "uvicorn==0.34.2"
+]
+
+[project.scripts]
+local-flight-map = "local_flight_map.__main__:main"
+
+[project.optional-dependencies]
+test = [
+    "pytest==8.0.0",
+    "pytest-asyncio==0.23.5"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--asyncio-mode=auto"
+]
