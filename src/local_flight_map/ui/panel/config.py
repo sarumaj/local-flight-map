@@ -42,7 +42,7 @@ class MapConfig(BaseSettings):
         default=10,
         description="The maximum number of threads to use for the data"
     )
-    data_provider: Literal["adsbexchange", "adsbx"] = Field(
+    data_provider: Literal["adsbexchange", "opensky"] = Field(
         default="adsbexchange",
         description="The provider of the data",
     )
