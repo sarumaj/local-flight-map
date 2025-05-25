@@ -1,10 +1,17 @@
+[![release](https://github.com/sarumaj/local-flight-map/actions/workflows/release.yml/badge.svg)](https://github.com/sarumaj/local-flight-map/actions/workflows/release.yml)
+[![deploy](https://github.com/sarumaj/local-flight-map/actions/workflows/deploy.yml/badge.svg)](https://github.com/sarumaj/local-flight-map/actions/workflows/deploy.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/sarumaj/local-flight-map?logo=github)](https://github.com/sarumaj/local-flight-map/releases/latest)
+[![Libraries.io dependency status for GitHub repo](https://img.shields.io/librariesio/github/sarumaj/local-flight-map)](https://github.com/sarumaj/local-flight-map/blob/main/pyproject.toml)
+
+---
+
 # Local Flight Map
 
 A real-time air traffic visualization tool that combines data from ADS-B Exchange and OpenSky Network to provide a comprehensive view of aircraft movements in your local area.
 
-This app is currently hosted at [local-flight-map.sarumaj.com](https://local-flight-amp.sarumaj.com).
+This app is currently hosted at [local-flight-map.sarumaj.com](https://local-flight-map.sarumaj.com).
 
-![screenshot.png](doc/screenshot.png)
+[![screenshot.png](doc/screenshot.png)](https://local-flight-map.sarumaj.com)
 
 ## Features
 
