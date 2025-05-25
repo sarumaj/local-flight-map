@@ -138,7 +138,10 @@ class MapInterface:
         self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
         self._app.add_api_route("/health", self.health, methods=["GET"])
-        add_applications({"/": self.create_map_widget}, app=self._app, title="Local Flight Map")
+        add_applications({
+            "/": self.create_map_widget,
+            "/map": self.create_map_widget,  # legacy endpoint
+        }, app=self._app, title="Local Flight Map")
 
         # Initialize map
         self._map = folium.Map(
@@ -161,10 +164,11 @@ class MapInterface:
         self._layers.add_to_map()
         self._layers.draw_bbox()
 
-        # Add flight marker utilities script to the map
-        self._map.get_root().html.add_child(folium.Element(
-            '<script src="/ui/static/js/flight_marker_utils.js"></script>'
-        ))
+        # Add static scripts to the document
+        for script in Path(str(Path(__file__).parent / "static" / "js")).glob("*.js"):
+            self._map.get_root().html.add_child(folium.Element(
+                f'<script src="/ui/static/js/{script.name}"></script>'
+            ))
 
     async def __aenter__(self):
         """Enter the async context manager"""

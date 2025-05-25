@@ -22,7 +22,8 @@ class JsCode(FoliumJsCode):
     def get_options(
         cls, *,
         prefix: str,
-        value_class: Union[str, "FoliumJsCode"] = FoliumJsCode
+        value_class: Union[str, "FoliumJsCode"] = FoliumJsCode,
+        value_class_mapping: dict[str, Union[str, "FoliumJsCode"]] = {},
     ) -> Union[dict[str, "FoliumJsCode"], dict[str, str]]:
         """
         Get the options for the js files.
@@ -35,7 +36,9 @@ class JsCode(FoliumJsCode):
             A dictionary of the options for the js files,
             with the key being the filename without the prefix and the value being the js code.
         """
-        return {
-            filename.stem.lstrip(prefix): value_class(cls(filename.name))
+        options = {
+            key: value_class_mapping.get(key, value_class)(cls(filename.name))
             for filename in cls.js_dir.glob(f"{prefix}*.js")
+            for key in (filename.stem[len(prefix):],)
         }
+        return options

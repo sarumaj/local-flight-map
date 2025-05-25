@@ -1,6 +1,6 @@
 from folium.plugins import MarkerCluster as FoliumMarkerCluster
 
-from .jscode import JsCode
+from .jscode import JsCode, FoliumJsCode
 
 
 class MarkerCluster(FoliumMarkerCluster):
@@ -12,5 +12,8 @@ class MarkerCluster(FoliumMarkerCluster):
         options = JsCode.get_options(
             prefix="markercluster_",
             value_class=str,
+            value_class_mapping={
+                "chunkProgress": FoliumJsCode,
+            },
         )
         super().__init__(*args, **{**options, **kwargs})

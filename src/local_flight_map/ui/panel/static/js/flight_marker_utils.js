@@ -1,7 +1,8 @@
 // Flight marker utilities
 window.calculateMarkerSize = function (props) {
-  const altitude = props.baro_altitude || props.geom_altitude;
-  if (!altitude || typeof altitude !== 'number' || isNaN(altitude)) return 48;
+  const altitude = props.baro_altitude || props.geom_altitude || 0;
+  if (altitude && altitude === 'ground') return 20;
+  else if (!altitude || typeof altitude !== 'number' || isNaN(altitude)) return 48;
 
   const minAlt = -1000;
   const maxAlt = 60000;
@@ -59,10 +60,11 @@ window.generateFlightInfoHtml = function (props, markerSize) {
   const altitude = props.baro_altitude || props.geom_altitude || 0;
   const groundSpeed = props.ground_speed || 0;
   const { vsColor, vsSymbol } = window.calculateVerticalSpeedIndicator(props);
+  const flightLevel = altitude === 'ground' ? 0 : Math.round(altitude / 100);
 
   return `
     <div style="${window.flightInfoStyles.container.replace('{markerSize}', markerSize)}">
-      <span style="${window.flightInfoStyles.value}">FL${Math.round(altitude / 100)}</span>
+      <span style="${window.flightInfoStyles.value}">FL${flightLevel}</span>
       <span style="${window.flightInfoStyles.value}">${Math.round(groundSpeed)}kt</span>
       <span style="${window.flightInfoStyles.vsIndicator}; color: ${vsColor};">${vsSymbol}</span>
     </div>

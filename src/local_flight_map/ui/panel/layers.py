@@ -66,13 +66,10 @@ class MapLayers:
         self._layers.cluster_group = MarkerCluster(
             name="Local Flights",
             control=False,
-            spiderfyOnMaxZoom=True,
             showCoverageOnHover=False,
-            zoomToBoundsOnClick=True,
-            disableClusteringAtZoom=16,
-            options={
-                "spiderfyDistanceMultiplier": 1.5,
-            },
+            spiderfyDistanceMultiplier=1.5,
+            removeOutsideVisibleBounds=True,
+            chunkedLoading=True,
         )
         self._layers.realtime = Realtime(
             container=self._layers.cluster_group,
