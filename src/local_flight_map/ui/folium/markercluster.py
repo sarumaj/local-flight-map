@@ -1,4 +1,5 @@
 from folium.plugins import MarkerCluster as FoliumMarkerCluster
+
 from .jscode import JsCode
 
 
@@ -8,5 +9,8 @@ class MarkerCluster(FoliumMarkerCluster):
     It adds a custom icon to the marker cluster.
     """
     def __init__(self, *args, **kwargs):
-        options = JsCode.get_options(prefix="markercluster_", value_class=str)
+        options = JsCode.get_options(
+            prefix="markercluster_",
+            value_class=str,
+        )
         super().__init__(*args, **{**options, **kwargs})

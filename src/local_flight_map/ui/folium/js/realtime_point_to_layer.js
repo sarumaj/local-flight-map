@@ -4,23 +4,6 @@
     return null;
   }
 
-  // Calculate marker size based on altitude
-  function calculateMarkerSize(props) {
-    const altitude = props.baro_altitude || props.geo_altitude;
-    if (!altitude || typeof altitude !== 'number' || isNaN(altitude)) return 48; // default size if no valid altitude available
-
-    // Define reasonable altitude bounds for aircraft (in feet)
-    const minAlt = -1000;  // Allow for some negative altitude (below sea level)
-    const maxAlt = 60000;  // Maximum typical cruising altitude for commercial aircraft
-
-    // Clamp altitude to reasonable bounds
-    const boundedAltitude = Math.min(Math.max(altitude, minAlt), maxAlt);
-
-    // Normalize altitude to size between 20 and 80
-    const normalizedSize = ((boundedAltitude - minAlt) / (maxAlt - minAlt)) * (80 - 20) + 20;
-    return Math.min(Math.max(normalizedSize, 20), 80);
-  }
-
   const markerSize = calculateMarkerSize(feature.properties);
 
   const icons = [
@@ -51,7 +34,7 @@
 
   var icon = L.divIcon({
     className: 'rotated-icon',
-    html: `
+    html: window.addIconShadow(`
       <div style="position: relative; width: ${markerSize}px; height: ${markerSize}px; cursor: pointer;">
         <img src="${selectedIcon.src}" 
           data-initial-rotation="${selectedIcon.initial_rotation}"
@@ -70,8 +53,10 @@
           z-index: 1000;
           cursor: pointer;
         ">
+        </div>
+        ${generateFlightInfoHtml(feature.properties, markerSize)}
       </div>
-    `,
+    `),
     iconSize: [markerSize, markerSize],
     iconAnchor: [markerSize / 2, markerSize / 2]
   });

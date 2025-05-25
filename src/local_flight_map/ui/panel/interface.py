@@ -3,7 +3,7 @@ import panel as pn
 import uvicorn
 from panel.io.fastapi import add_applications
 import fastapi
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -12,8 +12,12 @@ import secrets
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from typing import Callable
+from typing import Callable, Union, Dict, Any
+import re
 import time
+import signal
+import asyncio
+from types import FrameType
 
 from ...api import ApiClient
 from .config import MapConfig
@@ -30,45 +34,39 @@ class MapInterface:
 
     class EmptyFeatureCollection(JSONResponse):
         """Empty feature collection"""
-        def __init__(self):
+        def __init__(self, **kwargs: Dict[str, Any]):
             JSONResponse.__init__(
                 self,
-                content={
-                    "type": "FeatureCollection",
-                    "features": []
-                },
-                status_code=200
+                **{
+                    "content": {
+                        "type": "FeatureCollection",
+                        "features": []
+                    },
+                    "status_code": 200,
+                    **kwargs
+                }
             )
-
-    class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
-        """Middleware to redirect HTTP requests to HTTPS"""
-        def __init__(self, app: fastapi.FastAPI, dev_mode: bool = False):
-            BaseHTTPMiddleware.__init__(self, app)
-            self._dev_mode = dev_mode
-
-        async def dispatch(self, request: Request, call_next) -> fastapi.Response:
-            if not self._dev_mode and request.url.scheme == "http":
-                url = request.url.replace(scheme="https")
-                return RedirectResponse(url=url)
-            return await call_next(request)
 
     class SessionAuthenticator(BaseHTTPMiddleware):
         """Session authenticator"""
-        def __init__(self, app: fastapi.FastAPI, dev_mode: bool = False):
+        def __init__(self, app: fastapi.FastAPI, paths: Dict[re.Pattern, Response] = None):
             """
             Initialize the session authenticator
 
             Args:
                 app: The FastAPI app
-                dev_mode: Whether to run in development mode
+                paths: Dictionary mapping regex patterns to responses for path-based authentication
             """
             BaseHTTPMiddleware.__init__(self, app)
-            self._dev_mode = dev_mode
+            self._paths = paths
 
         async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
-            if "authenticated" not in request.session:
-                request.session["authenticated"] = True
-                return MapInterface.EmptyFeatureCollection()
+            if self._paths is not None:
+                for path, response in self._paths.items():
+                    if path.match(request.url.path):
+                        if "authenticated" not in request.session:
+                            request.session["authenticated"] = True
+                            return response
             return await call_next(request)
 
     class RequestLoggerMiddleware(BaseHTTPMiddleware):
@@ -99,7 +97,7 @@ class MapInterface:
         """
         self._config = config
         self._client = client
-        self._data = DataSource(client)
+        self._data = DataSource(client, config)
         self._session_secret = secrets.token_urlsafe(32)
 
         # Setup FastAPI app
@@ -111,16 +109,26 @@ class MapInterface:
             allow_methods=["GET", "HEAD", "OPTIONS"],
             allow_headers=["*"],
         )
-        self._app.add_middleware(MapInterface.SessionAuthenticator, dev_mode=self._config.dev_mode)
+        self._app.add_middleware(
+            MapInterface.SessionAuthenticator,
+            paths={
+                re.compile(r"^/aircrafts"): MapInterface.EmptyFeatureCollection(
+                    headers={"X-Status-Code": "403"}
+                ),
+                re.compile(r"^/ui/static/icons/.*"): RedirectResponse(
+                    url="/ui/static/icons/forbidden.png",
+                    headers={"X-Status-Code": "403"}
+                ),
+            }
+        )
         self._app.add_middleware(
             SessionMiddleware,
             secret_key=self._session_secret,
             session_cookie="flight_map_session",
             max_age=3600,
             same_site="lax",
-            https_only=not self._config.dev_mode
+            https_only=not self._config.app_dev_mode
         )
-        self._app.add_middleware(MapInterface.HTTPSRedirectMiddleware, dev_mode=self._config.dev_mode)
         self._app.add_middleware(MapInterface.RequestLoggerMiddleware)
         self._app.mount(
             "/ui/static",
@@ -128,28 +136,35 @@ class MapInterface:
             name="static"
         )
         self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
+        self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
+        self._app.add_api_route("/health", self.health, methods=["GET"])
         add_applications({"/": self.create_map_widget}, app=self._app, title="Local Flight Map")
 
         # Initialize map
         self._map = folium.Map(
-            location=(self._config.center.latitude, self._config.center.longitude),
-            zoom_start=self._config.zoom_start,
-            max_bounds=self._config.max_bounds,
-            control_scale=self._config.control_scale,
-            max_lat=self._config.bbox.max_lat,
-            min_lat=self._config.bbox.min_lat,
-            max_lon=self._config.bbox.max_lon,
-            min_lon=self._config.bbox.min_lon,
+            location=(self._config.map_center.latitude, self._config.map_center.longitude),
+            zoom_start=self._config.map_zoom_start,
+            max_bounds=self._config.map_max_bounds,
+            control_scale=self._config.map_control_scale,
+            max_lat=self._config.map_bbox.max_lat,
+            min_lat=self._config.map_bbox.min_lat,
+            max_lon=self._config.map_bbox.max_lon,
+            min_lon=self._config.map_bbox.min_lon,
         )
 
         # Set map bounds
         self._map.fit_bounds(self._config.get_map_bounds())
-        self._map.options["radius"] = self._config.radius
+        self._map.options["radius"] = self._config.map_radius
 
         # Initialize and add layers
-        self._layers = MapLayers(self._map, self._config.bbox)
+        self._layers = MapLayers(self._map, self._config)
         self._layers.add_to_map()
         self._layers.draw_bbox()
+
+        # Add flight marker utilities script to the map
+        self._map.get_root().html.add_child(folium.Element(
+            '<script src="/ui/static/js/flight_marker_utils.js"></script>'
+        ))
 
     async def __aenter__(self):
         """Enter the async context manager"""
@@ -160,6 +175,27 @@ class MapInterface:
         if hasattr(self._client, '__aexit__'):
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
+    async def health(self) -> JSONResponse:
+        """Health check endpoint"""
+        return JSONResponse(
+            content={"status": "ok"},
+            status_code=200
+        )
+
+    async def get_config(self) -> JSONResponse:
+        """
+        Get the configuration
+
+        Returns:
+            JSONResponse: The configuration
+        """
+        return JSONResponse(
+            content={
+                "interval": self._config.map_refresh_interval
+            },
+            status_code=200
+        )
+
     async def get_aircrafts_geojson(self) -> JSONResponse:
         """
         API endpoint to get aircraft data
@@ -168,9 +204,9 @@ class MapInterface:
             JSONResponse: The aircraft data
         """
         try:
-            aircrafts = await self._data.get_aircrafts_geojson(self._config)
+            aircrafts = await self._data.get_aircrafts_geojson()
             if aircrafts is None:
-                return MapInterface.EmptyFeatureCollection()
+                return MapInterface.EmptyFeatureCollection(headers={"X-Status-Code": "404"})
             return JSONResponse(
                 content=aircrafts,
                 status_code=200
@@ -195,15 +231,34 @@ class MapInterface:
         """Start the server"""
         config = uvicorn.Config(
             self._app,
-            host="localhost",
-            port=self._config.port,
+            host="0.0.0.0",
+            port=self._config.app_port,
             log_level="error"
         )
         server = uvicorn.Server(config)
+        shutdown_event = asyncio.Event()
+
+        def handle_signal(sig: Union[signal.Signals, int], frame: FrameType):
+            _ = frame
+            logger.info(f"Received signal {signal.Signals(sig).name}, initiating graceful shutdown...")
+            shutdown_event.set()
+
+        signal.signal(signal.SIGTERM, handle_signal)
+        signal.signal(signal.SIGINT, handle_signal)
+
         try:
-            await server.serve()
+            logger.info(f"Starting server on http://{config.host}:{config.port}")
+            server_task = asyncio.create_task(server.serve())
+            await shutdown_event.wait()
+
+            logger.info("Shutting down server...")
+            server.should_exit = True
+            await server_task
+
         finally:
+            logger.info("Cleaning up resources...")
             if hasattr(self._client, 'close'):
                 await self._client.close()
             elif hasattr(self._client, '__aexit__'):
                 await self._client.__aexit__(None, None, None)
+            logger.info("Shutdown complete")

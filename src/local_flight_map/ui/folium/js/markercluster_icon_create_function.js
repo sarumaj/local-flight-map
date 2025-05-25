@@ -1,6 +1,6 @@
 (cluster) => {
   var count = cluster.getChildCount();
-  var size = Math.min(40 + (count * 2), 80);
+  var size = Math.min(40 + (count * 2), 160);
 
   return L.divIcon({
     html: `
@@ -14,6 +14,7 @@
             width: 100%;
             height: 100%;
             opacity: 0.8;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
           "
         />
         <div style="
@@ -24,7 +25,10 @@
           font-size: ${Math.min(16 + (count * 0.5), 24)}px;
           font-weight: bold;
           color: #333;
-          text-shadow: 0 0 3px white;
+          text-shadow: 
+            0 0 3px white,
+            0 0 6px rgba(255, 255, 255, 0.8),
+            0 0 9px rgba(255, 255, 255, 0.6);
         ">${count}</div>
       </div>
     `,

@@ -4,63 +4,149 @@
     return;
   }
 
+  // Freeze layer when popup is open
   var popup = oldLayer.getPopup();
   if (popup && popup.isOpen()) {
     return oldLayer;
   }
 
+  // Initialize or get layer-specific config cache
+  if (!oldLayer._configCache) {
+    oldLayer._configCache = {
+      interval: null,
+      lastFetch: 0,
+      fetchPromise: null
+    };
+  }
+
+  async function getConfig() {
+    const now = Date.now();
+    const cacheDuration = 60000; // Cache for 1 minute
+
+    // Return cached value if it's still valid
+    if (oldLayer._configCache.interval && (now - oldLayer._configCache.lastFetch) < cacheDuration) {
+      return oldLayer._configCache;
+    }
+
+    // If there's an ongoing fetch, return its promise
+    if (oldLayer._configCache.fetchPromise) {
+      return oldLayer._configCache.fetchPromise;
+    }
+
+    // Start new fetch
+    oldLayer._configCache.fetchPromise = fetch('/ui/config')
+      .then(response => response.json())
+      .then(config => {
+        oldLayer._configCache.interval = config.interval;
+        oldLayer._configCache.lastFetch = now;
+        oldLayer._configCache.fetchPromise = null;
+        return oldLayer._configCache;
+      })
+      .catch(error => {
+        console.error('Error fetching config:', error);
+        oldLayer._configCache.fetchPromise = null;
+        // Return default value if fetch fails
+        return { interval: 200 };
+      });
+
+    return oldLayer._configCache.fetchPromise;
+  }
+
   // Update the layer position with animation
   var type = feature.geometry && feature.geometry.type;
   var coordinates = feature.geometry && feature.geometry.coordinates;
+  console.log('Updating feature:', {
+    type: type,
+    coordinates: coordinates,
+    properties: feature.properties
+  });
+
   switch (type) {
     case 'Point':
       var newLatLng = L.GeoJSON.coordsToLatLng(coordinates);
       var currentLatLng = oldLayer.getLatLng();
+      console.log('Point update:', {
+        current: currentLatLng ? [currentLatLng.lat, currentLatLng.lng] : null,
+        new: [newLatLng.lat, newLatLng.lng]
+      });
 
-      // Animate the marker movement
-      if (currentLatLng) {
-        var duration = 100; // 100ms animation
-        var startTime = null;
-        var startLat = currentLatLng.lat;
-        var startLng = currentLatLng.lng;
-        var endLat = newLatLng.lat;
-        var endLng = newLatLng.lng;
+      // Get config with caching
+      getConfig().then(config => {
+        if (currentLatLng) {
+          // Custom smooth animation
+          var duration = config.interval / 1000; // Convert ms to seconds
+          var startTime = null;
+          var startLat = currentLatLng.lat;
+          var startLng = currentLatLng.lng;
+          var endLat = newLatLng.lat;
+          var endLng = newLatLng.lng;
+          var isAnimating = true;
 
-        function animate(timestamp) {
-          if (!startTime) startTime = timestamp;
-          var progress = Math.min((timestamp - startTime) / duration, 1);
-
-          // Easing function for smooth animation
-          progress = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-          var currentLat = startLat + (endLat - startLat) * progress;
-          var currentLng = startLng + (endLng - startLng) * progress;
-
-          oldLayer.setLatLng([currentLat, currentLng]);
-
-          // Update icon rotation
-          var icon = oldLayer.getIcon();
-          if (icon && feature.properties.track_angle) {
-            var imgElement = icon.options.html.match(/<img[^>]+>/)[0];
-            var initialRotation = parseInt(imgElement.match(/data-initial-rotation="(\d+)"/)[1]);
-            var newIcon = L.divIcon({
-              className: 'rotated-icon',
-              html: imgElement.replace(/transform:[^;]+/,
-                `transform:rotate(${feature.properties.track_angle - initialRotation}deg)`),
-              iconSize: icon.options.iconSize,
-              iconAnchor: icon.options.iconAnchor
-            });
-            oldLayer.setIcon(newIcon);
+          function easeInOutCubic(t) {
+            return t < 0.5
+              ? 4 * t * t * t
+              : 1 - Math.pow(-2 * t + 2, 3) / 2;
           }
 
-          if (progress < 1) {
-            requestAnimationFrame(animate);
+          // Pause animation on interaction
+          oldLayer.on('mouseover mousedown touchstart', function () {
+            isAnimating = false;
+          });
+
+          function animate(timestamp) {
+            if (!startTime) {
+              startTime = timestamp;
+            }
+
+            if (!isAnimating) {
+              return;
+            }
+
+            var progress = Math.min((timestamp - startTime) / (duration * 1000), 1);
+            var easedProgress = easeInOutCubic(progress);
+
+            var currentLat = startLat + (endLat - startLat) * easedProgress;
+            var currentLng = startLng + (endLng - startLng) * easedProgress;
+
+            oldLayer.setLatLng([currentLat, currentLng]);
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              isAnimating = false;
+            }
           }
+
+          requestAnimationFrame(animate);
+        } else {
+          oldLayer.setLatLng(newLatLng);
         }
+      });
 
-        requestAnimationFrame(animate);
-      } else {
-        oldLayer.setLatLng(newLatLng);
+      // Update icon rotation if needed
+      if (feature.properties.track_angle) {
+        var icon = oldLayer.getIcon();
+        var imgElement = icon.options.html.match(/<img[^>]+>/)[0];
+        var initialRotation = parseInt(imgElement.match(/data-initial-rotation="(\d+)"/)[1]);
+
+        const markerSize = calculateMarkerSize(feature.properties);
+
+        // Update both rotation and flight info in one go
+        let updatedHtml = window.addIconShadow(icon.options.html
+          // Update rotation
+          .replace(/transform:rotate\([^)]+\)/,
+            `transform:rotate(${feature.properties.track_angle - initialRotation}deg)`)
+          // Update flight info
+          .replace(/<div style="[^"]*position: absolute;[^"]*top: -[^"]*">.*?<\/div>/s,
+            generateFlightInfoHtml(feature.properties, markerSize)));
+
+        var newIcon = L.divIcon({
+          className: 'rotated-icon',
+          html: updatedHtml,
+          iconSize: [markerSize, markerSize],
+          iconAnchor: [markerSize / 2, markerSize / 2]
+        });
+        oldLayer.setIcon(newIcon);
       }
       break;
     case 'LineString':

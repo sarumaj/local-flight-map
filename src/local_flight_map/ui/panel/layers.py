@@ -1,9 +1,9 @@
 import folium
-from folium.plugins import MousePosition, MiniMap
+from folium.plugins import MousePosition, MiniMap, Fullscreen
 from dataclasses import dataclass
 
 from ..folium import Realtime, MarkerCluster
-from ...api import BBox
+from .config import MapConfig
 
 
 class MapLayers:
@@ -17,15 +17,16 @@ class MapLayers:
         layer_control: folium.LayerControl
         cluster_group: MarkerCluster
         minimap: MiniMap
+        full_screen: Fullscreen
 
         @classmethod
         def from_scratch(cls) -> 'MapLayers._Layers':
             """Create a new instance from scratch"""
             return cls(**dict.fromkeys(cls.__annotations__.keys(), None))
 
-    def __init__(self, map_instance: folium.Map, bbox: BBox):
+    def __init__(self, map_instance: folium.Map, config: MapConfig):
         self._map = map_instance
-        self._bbox = bbox
+        self._config = config
         self._initialize_layers()
 
     def _initialize_layers(self):
@@ -63,19 +64,19 @@ class MapLayers:
         )
         self._layers.layer_control = folium.LayerControl()
         self._layers.cluster_group = MarkerCluster(
+            name="Local Flights",
             control=False,
             spiderfyOnMaxZoom=True,
             showCoverageOnHover=False,
             zoomToBoundsOnClick=True,
             disableClusteringAtZoom=16,
-            overlay=False,
             options={
                 "spiderfyDistanceMultiplier": 1.5,
-            }
+            },
         )
         self._layers.realtime = Realtime(
             container=self._layers.cluster_group,
-            interval=200,
+            interval=self._config.map_refresh_interval,
         )
         self._layers.minimap = MiniMap(
             tiles=self._layers.opnvkarte,
@@ -86,6 +87,12 @@ class MapLayers:
             toggle_display=True,
             zoom_level_fixed=12,
         )
+        self._layers.full_screen = Fullscreen(
+            position="topright",
+            title="Full Screen",
+            title_cancel="Exit Full Screen",
+            force_separate_button=True,
+        )
 
     def add_to_map(self):
         """Add all layers to the map"""
@@ -95,17 +102,18 @@ class MapLayers:
         self._layers.cluster_group.add_to(self._map)
         self._layers.realtime.add_to(self._map)
         self._layers.minimap.add_to(self._map)
+        self._layers.full_screen.add_to(self._map)
         self._layers.layer_control.add_to(self._map)
 
     def draw_bbox(self):
         """Draw the bounding box on the map"""
         folium.PolyLine(
             locations=[
-                (self._bbox.min_lat, self._bbox.min_lon),
-                (self._bbox.min_lat, self._bbox.max_lon),
-                (self._bbox.max_lat, self._bbox.max_lon),
-                (self._bbox.max_lat, self._bbox.min_lon),
-                (self._bbox.min_lat, self._bbox.min_lon),
+                (self._config.map_bbox.min_lat, self._config.map_bbox.min_lon),
+                (self._config.map_bbox.min_lat, self._config.map_bbox.max_lon),
+                (self._config.map_bbox.max_lat, self._config.map_bbox.max_lon),
+                (self._config.map_bbox.max_lat, self._config.map_bbox.min_lon),
+                (self._config.map_bbox.min_lat, self._config.map_bbox.min_lon),
             ],
             color="red",
             weight=2,

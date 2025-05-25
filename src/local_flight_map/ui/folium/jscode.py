@@ -36,6 +36,6 @@ class JsCode(FoliumJsCode):
             with the key being the filename without the prefix and the value being the js code.
         """
         return {
-            filename.stem.lstrip(prefix): value_class(filename.read_text())
+            filename.stem.lstrip(prefix): value_class(cls(filename.name))
             for filename in cls.js_dir.glob(f"{prefix}*.js")
         }

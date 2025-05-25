@@ -2,6 +2,10 @@
 
 A real-time air traffic visualization tool that combines data from ADS-B Exchange and OpenSky Network to provide a comprehensive view of aircraft movements in your local area.
 
+This app is currently hosted at [local-flight-map.sarumaj.com](https://local-flight-amp.sarumaj.com).
+
+![screenshot.png](doc/screenshot.png)
+
 ## Features
 
 - Real-time aircraft tracking and visualization

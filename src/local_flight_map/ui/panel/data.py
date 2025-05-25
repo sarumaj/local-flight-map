@@ -10,10 +10,9 @@ from .config import MapConfig
 class DataSource:
     """Handles aircraft data processing and enrichment"""
 
-    def __init__(self, client: ApiClient, batch_size: int = 50):
+    def __init__(self, client: ApiClient, config: MapConfig):
         self._client = client
-        self._batch_size = batch_size
-        self._semaphore = asyncio.Semaphore(10)
+        self._config = config
 
     def _generate_tags(self, props: Dict[str, Any]) -> list[str]:
         """
@@ -76,6 +75,9 @@ class DataSource:
 
     async def _process_feature(self, feature: Dict[str, Any]) -> Dict[str, Any]:
         """Process a single feature with rate limiting"""
+        if not hasattr(self, "_semaphore"):
+            self._semaphore = asyncio.Semaphore(self._config.data_max_threads)
+
         async with self._semaphore:
             icao24 = feature["properties"]["icao24_code"]
             for result in await asyncio.gather(
@@ -88,25 +90,22 @@ class DataSource:
             feature["properties"]["tags"] = self._generate_tags(feature["properties"])
             return feature
 
-    async def get_aircrafts_geojson(self, config: MapConfig) -> Dict[str, Any]:
+    async def get_aircrafts_geojson(self) -> Dict[str, Any]:
         """
         Get aircraft data in GeoJSON format.
-
-        Args:
-            center: The center of the map.
-            radius: The radius of the map.
 
         Returns:
             The aircraft data in GeoJSON format.
         """
-        if config.provider == 'adsbexchange':
-            args = (config.center, config.radius)
-            method = self._client.get_aircraft_from_adsbexchange_within_range
-        elif config.provider == 'opensky':
-            args = (0, None, config.bbox)
-            method = self._client.get_states_from_opensky
-        else:
-            raise ValueError(f"Invalid provider: {config.provider}")
+        match self._config.data_provider:
+            case 'adsbexchange':
+                args = (self._config.map_center, self._config.map_radius)
+                method = self._client.get_aircraft_from_adsbexchange_within_range
+            case 'opensky':
+                args = (0, None, self._config.map_bbox)
+                method = self._client.get_states_from_opensky
+            case _:
+                raise ValueError(f"Invalid provider: {self._config.data_provider}")
 
         aircrafts: Union[AdsbExchangeResponse, States] = await method(*args)
         if aircrafts is None:
@@ -114,9 +113,10 @@ class DataSource:
 
         feature_collection: Dict[str, Any] = aircrafts.to_geojson()
         feature_collection["features"] = [
-            feature for i in range(0, len(feature_collection["features"]), self._batch_size)
+            feature for i in range(0, len(feature_collection["features"]), self._config.data_batch_size)
             for feature in await asyncio.gather(*[
-                self._process_feature(feature) for feature in feature_collection["features"][i:i+self._batch_size]
+                self._process_feature(feature)
+                for feature in feature_collection["features"][i:i+self._config.data_batch_size]
             ])
         ]
         return feature_collection
