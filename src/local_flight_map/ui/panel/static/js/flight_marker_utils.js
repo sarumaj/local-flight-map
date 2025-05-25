@@ -75,4 +75,44 @@ window.addIconShadow = function (html) {
     /<img([^>]+)style="([^"]+)"/,
     '<img$1style="$2; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));"'
   );
+};
+
+// Global config cache
+window.configCache = {
+  interval: null,
+  lastFetch: 0,
+  fetchPromise: null
+};
+
+window.getConfig = async function () {
+  const now = Date.now();
+  const cacheDuration = 60000; // Cache for 1 minute
+
+  // Return cached value if it's still valid
+  if (window.configCache.interval && (now - window.configCache.lastFetch) < cacheDuration) {
+    return window.configCache;
+  }
+
+  // If there's an ongoing fetch, return its promise
+  if (window.configCache.fetchPromise) {
+    return window.configCache.fetchPromise;
+  }
+
+  // Start new fetch
+  window.configCache.fetchPromise = fetch('/ui/config')
+    .then(response => response.json())
+    .then(config => {
+      window.configCache.interval = config.interval;
+      window.configCache.lastFetch = now;
+      window.configCache.fetchPromise = null;
+      return window.configCache;
+    })
+    .catch(error => {
+      console.error('Error fetching config:', error);
+      window.configCache.fetchPromise = null;
+      // Return default value if fetch fails
+      return { interval: 200 };
+    });
+
+  return window.configCache.fetchPromise;
 }; 

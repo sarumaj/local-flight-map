@@ -10,68 +10,17 @@
     return oldLayer;
   }
 
-  // Initialize or get layer-specific config cache
-  if (!oldLayer._configCache) {
-    oldLayer._configCache = {
-      interval: null,
-      lastFetch: 0,
-      fetchPromise: null
-    };
-  }
-
-  async function getConfig() {
-    const now = Date.now();
-    const cacheDuration = 60000; // Cache for 1 minute
-
-    // Return cached value if it's still valid
-    if (oldLayer._configCache.interval && (now - oldLayer._configCache.lastFetch) < cacheDuration) {
-      return oldLayer._configCache;
-    }
-
-    // If there's an ongoing fetch, return its promise
-    if (oldLayer._configCache.fetchPromise) {
-      return oldLayer._configCache.fetchPromise;
-    }
-
-    // Start new fetch
-    oldLayer._configCache.fetchPromise = fetch('/ui/config')
-      .then(response => response.json())
-      .then(config => {
-        oldLayer._configCache.interval = config.interval;
-        oldLayer._configCache.lastFetch = now;
-        oldLayer._configCache.fetchPromise = null;
-        return oldLayer._configCache;
-      })
-      .catch(error => {
-        console.error('Error fetching config:', error);
-        oldLayer._configCache.fetchPromise = null;
-        // Return default value if fetch fails
-        return { interval: 200 };
-      });
-
-    return oldLayer._configCache.fetchPromise;
-  }
-
   // Update the layer position with animation
   var type = feature.geometry && feature.geometry.type;
   var coordinates = feature.geometry && feature.geometry.coordinates;
-  console.log('Updating feature:', {
-    type: type,
-    coordinates: coordinates,
-    properties: feature.properties
-  });
 
   switch (type) {
     case 'Point':
       var newLatLng = L.GeoJSON.coordsToLatLng(coordinates);
       var currentLatLng = oldLayer.getLatLng();
-      console.log('Point update:', {
-        current: currentLatLng ? [currentLatLng.lat, currentLatLng.lng] : null,
-        new: [newLatLng.lat, newLatLng.lng]
-      });
 
-      // Get config with caching
-      getConfig().then(config => {
+      // Get config using global cache
+      window.getConfig().then(config => {
         if (currentLatLng) {
           // Custom smooth animation
           var duration = config.interval / 1000; // Convert ms to seconds
