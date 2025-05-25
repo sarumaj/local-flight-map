@@ -74,6 +74,7 @@ class MapLayers:
         self._layers.realtime = Realtime(
             container=self._layers.cluster_group,
             interval=self._config.map_refresh_interval,
+            remove_missing=True,
         )
         self._layers.minimap = MiniMap(
             tiles=self._layers.opnvkarte,
@@ -85,7 +86,7 @@ class MapLayers:
             zoom_level_fixed=12,
         )
         self._layers.full_screen = Fullscreen(
-            position="topright",
+            position="topleft",
             title="Full Screen",
             title_cancel="Exit Full Screen",
             force_separate_button=True,
@@ -101,18 +102,3 @@ class MapLayers:
         self._layers.minimap.add_to(self._map)
         self._layers.full_screen.add_to(self._map)
         self._layers.layer_control.add_to(self._map)
-
-    def draw_bbox(self):
-        """Draw the bounding box on the map"""
-        folium.PolyLine(
-            locations=[
-                (self._config.map_bbox.min_lat, self._config.map_bbox.min_lon),
-                (self._config.map_bbox.min_lat, self._config.map_bbox.max_lon),
-                (self._config.map_bbox.max_lat, self._config.map_bbox.max_lon),
-                (self._config.map_bbox.max_lat, self._config.map_bbox.min_lon),
-                (self._config.map_bbox.min_lat, self._config.map_bbox.min_lon),
-            ],
-            color="red",
-            weight=2,
-            opacity=0.7
-        ).add_to(self._map)

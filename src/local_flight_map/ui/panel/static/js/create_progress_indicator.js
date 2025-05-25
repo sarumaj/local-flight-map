@@ -1,4 +1,9 @@
 function createProgressBar() {
+    // Check if progress bar already exists
+    if (document.getElementById('progress')) {
+        return;
+    }
+
     const progressHtml = `
         <div id="progress" style="
             display: none;
@@ -32,7 +37,19 @@ function createProgressBar() {
             ">Loading markers...</div>
         </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', progressHtml);
+
+    try {
+        document.body.insertAdjacentHTML('beforeend', progressHtml);
+    } catch (error) {
+        console.error('Error creating progress bar:', error);
+    }
+}
+
+function removeProgressBar() {
+    const progressBar = document.getElementById('progress');
+    if (progressBar) {
+        progressBar.remove();
+    }
 }
 
 // Initialize progress bar when script loads

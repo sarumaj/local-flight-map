@@ -23,6 +23,7 @@ from ...api import ApiClient
 from .config import MapConfig
 from .layers import MapLayers
 from .data import DataSource
+from .config import BBox
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -138,6 +139,7 @@ class MapInterface:
         self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
         self._app.add_api_route("/health", self.health, methods=["GET"])
+        self._app.add_api_route("/ui/bbox", self.update_bbox, methods=["POST"])
         add_applications({
             "/": self.create_map_widget,
             "/map": self.create_map_widget,  # legacy endpoint
@@ -162,13 +164,17 @@ class MapInterface:
         # Initialize and add layers
         self._layers = MapLayers(self._map, self._config)
         self._layers.add_to_map()
-        self._layers.draw_bbox()
 
         # Add static scripts to the document
         for script in Path(str(Path(__file__).parent / "static" / "js")).glob("*.js"):
             self._map.get_root().html.add_child(folium.Element(
                 f'<script src="/ui/static/js/{script.name}"></script>'
             ))
+
+        # Add inline map initialization script
+        self._map.get_root().html.add_child(folium.Element(
+            f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
+        ))
 
     async def __aenter__(self):
         """Enter the async context manager"""
@@ -195,7 +201,18 @@ class MapInterface:
         """
         return JSONResponse(
             content={
-                "interval": self._config.map_refresh_interval
+                "interval": self._config.map_refresh_interval,
+                "bounds": {
+                    "north": self._config.map_bbox.max_lat,
+                    "south": self._config.map_bbox.min_lat,
+                    "east": self._config.map_bbox.max_lon,
+                    "west": self._config.map_bbox.min_lon
+                },
+                "center": {
+                    "lat": self._config.map_center.latitude,
+                    "lng": self._config.map_center.longitude
+                },
+                "radius": self._config.map_radius
             },
             status_code=200
         )
@@ -208,7 +225,9 @@ class MapInterface:
             JSONResponse: The aircraft data
         """
         try:
+
             aircrafts = await self._data.get_aircrafts_geojson()
+            logger.info(f"Getting aircraft data for {self._config.map_bbox}: length {len(aircrafts['features'])}")
             if aircrafts is None:
                 return MapInterface.EmptyFeatureCollection(headers={"X-Status-Code": "404"})
             return JSONResponse(
@@ -230,6 +249,67 @@ class MapInterface:
             pn.pane.plot.Folium: The map widget
         """
         return pn.pane.plot.Folium(self._map, sizing_mode="stretch_both")
+
+    async def update_bbox(self, request: Request) -> JSONResponse:
+        """
+        Update the bounding box
+
+        Args:
+            request: The request containing the new bounding box coordinates
+
+        Returns:
+            JSONResponse: The response indicating success or failure
+        """
+        try:
+            data = await request.json()
+            bounds = data.get("bounds", {})
+
+            # Update map bounds
+            self._map.options["max_lat"] = bounds.get("north")
+            self._map.options["min_lat"] = bounds.get("south")
+            self._map.options["max_lon"] = bounds.get("east")
+            self._map.options["min_lon"] = bounds.get("west")
+
+            # Create BBox and get center and radius
+            bbox = BBox(
+                min_lat=bounds.get("south"),
+                max_lat=bounds.get("north"),
+                min_lon=bounds.get("west"),
+                max_lon=bounds.get("east")
+            )
+            center, radius = bbox.to_center_and_radius()
+
+            # Update map configuration
+            self._config.map_center = center
+            self._config.map_radius = radius
+            self._config.map_bbox = bbox  # Update the map_bbox property
+
+            # Force a data refresh by triggering the boundsUpdated event
+            self._map.get_root().html.add_child(folium.Element(
+                '<script>\n'
+                'window.dispatchEvent(new CustomEvent("boundsUpdated", {\n'
+                '  detail: {\n'
+                '    bounds: {\n'
+                f'      north: {bounds.get("north")},\n'
+                f'      south: {bounds.get("south")},\n'
+                f'      east: {bounds.get("east")},\n'
+                f'      west: {bounds.get("west")}\n'
+                '    }\n'
+                '  }\n'
+                '}));\n'
+                '</script>'
+            ))
+
+            return JSONResponse(
+                content={"status": "ok"},
+                status_code=200
+            )
+        except Exception as e:
+            logger.error(f"Error updating bounding box: {e}")
+            return JSONResponse(
+                content={"error": str(e)},
+                status_code=500
+            )
 
     async def serve(self):
         """Start the server"""

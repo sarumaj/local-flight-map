@@ -19,5 +19,11 @@
       });
   }
 
+  // Listen for bounds updates
+  window.addEventListener('boundsUpdated', function (event) {
+    fetchData();
+  });
+
+  // Initial fetch
   fetchData();
 }

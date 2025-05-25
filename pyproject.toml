@@ -48,10 +48,11 @@ exclude = ["tests*"]
 [tool.setuptools.package-data]
 "local_flight_map.ui.panel" = [
     "static/*",
-    "static/**/*"
+    "static/**/*",
+    "interface.js"
 ]
 "local_flight_map.ui.folium" = [
-    "js/*"
+    "js/*.js"
 ]
 
 [tool.pytest.ini_options]

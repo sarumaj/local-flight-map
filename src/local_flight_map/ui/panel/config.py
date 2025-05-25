@@ -60,7 +60,7 @@ class MapConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         env_nested_delimiter="_",
-        frozen=True,
+        frozen=False,
         extra="ignore",
         case_sensitive=False,
         cli_parse_args=True,
@@ -73,6 +73,14 @@ class MapConfig(BaseSettings):
     def map_bbox(self) -> BBox:
         """Get the bounding box for the map"""
         return BBox.get_bbox_by_radius(self.map_center, self.map_radius)
+
+    @map_bbox.setter
+    def map_bbox(self, bbox: BBox) -> None:
+        """Set the bounding box for the map and update center and radius accordingly"""
+        bbox.validate()
+        center, radius = bbox.to_center_and_radius()
+        self.map_center = center
+        self.map_radius = radius
 
     def get_map_bounds(self):
         """Get the map bounds as a list of coordinates"""

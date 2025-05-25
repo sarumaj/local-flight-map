@@ -1,5 +1,5 @@
 import aiohttp
-from typing import Optional, NamedTuple, Dict, Any, List, Union
+from typing import Optional, NamedTuple, Dict, Any, List, Union, Tuple
 import math
 from dataclasses import asdict
 import json
@@ -59,8 +59,9 @@ class BBox(NamedTuple):
         if abs(center.latitude) > 89.9:
             raise ValueError("Cannot calculate bounding box near the poles")
 
+        latitude_skew = math.cos(math.radians(center.latitude))
         latitude_in_degrees = radius / 60
-        longitude_in_degrees = radius / 60 / math.cos(math.radians(center.latitude))
+        longitude_in_degrees = radius / 60 / latitude_skew
 
         longitude_in_degrees = min(longitude_in_degrees, 180)
 
@@ -70,6 +71,26 @@ class BBox(NamedTuple):
             min_lon=max(center.longitude - longitude_in_degrees, -180),
             max_lon=min(center.longitude + longitude_in_degrees, 180)
         )
+
+    def to_center_and_radius(self) -> Tuple[Location, float]:
+        """
+        Convert the bounding box to a center and a radius.
+
+        Returns:
+            A tuple containing the center Location and radius in nautical miles.
+        """
+        center = Location(
+            latitude=(self.min_lat + self.max_lat) / 2,
+            longitude=(self.min_lon + self.max_lon) / 2
+        )
+
+        latitude_skew = math.cos(math.radians(center.latitude))
+        latitude_radius = (self.max_lat - self.min_lat) / 2 * 60
+        longitude_radius = (self.max_lon - self.min_lon) / 2 * 60 * latitude_skew
+
+        radius = max(latitude_radius, longitude_radius)
+
+        return center, radius
 
 
 class ResponseObject:
