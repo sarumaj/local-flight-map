@@ -1,8 +1,14 @@
+"""
+ADSB Exchange API client module.
+Provides classes and utilities for interacting with the ADSB Exchange API.
+"""
+
 from dataclasses import dataclass
 from typing import List, Optional, Union, Dict, Any
 from pydantic import Field
 from urllib.parse import urlparse
 from async_lru import alru_cache
+
 from .base import BaseClient, BaseConfig, ResponseObject, Location
 
 
@@ -123,6 +129,12 @@ class AircraftProperties(ResponseObject):
     gpsOkLon: Optional[float]
 
     def to_geojson(self) -> Dict[str, Any]:
+        """
+        Convert the aircraft data to GeoJSON format.
+
+        Returns:
+            A dictionary containing the GeoJSON representation of the aircraft.
+        """
         return {
             "type": "Feature",
             "geometry": {
@@ -211,6 +223,15 @@ class AdsbExchangeResponse(ResponseObject):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AdsbExchangeResponse':
+        """
+        Create an AdsbExchangeResponse from a dictionary.
+
+        Args:
+            data: The dictionary containing the response data.
+
+        Returns:
+            A new AdsbExchangeResponse instance.
+        """
         return cls(
             ac=[AircraftProperties.from_dict(aircraft) for aircraft in data['ac'] or []],
             msg=data['msg'],
@@ -221,6 +242,12 @@ class AdsbExchangeResponse(ResponseObject):
         )
 
     def to_geojson(self) -> Dict[str, Any]:
+        """
+        Convert the response to GeoJSON format.
+
+        Returns:
+            A dictionary containing the GeoJSON representation of all aircraft.
+        """
         return {
             "type": "FeatureCollection",
             "features": [aircraft.to_geojson() for aircraft in self.ac]
@@ -229,19 +256,19 @@ class AdsbExchangeResponse(ResponseObject):
 
 class AdsbExchangeConfig(BaseConfig):
     """
-    Config for the AdsbExchange API.
+    Configuration for the ADSB Exchange API client.
 
     Attributes:
-        adsbexchange_base_url: The base URL for the AdsbExchange API.
-        adsbexchange_api_key: The API key for the AdsbExchange API.
+        adsbexchange_base_url: The base URL for the ADSB Exchange API.
+        adsbexchange_api_key: The API key for the ADSB Exchange API.
     """
     adsbexchange_base_url: str = Field(
         default="https://adsbexchange-com1.p.rapidapi.com/",
-        description="The base URL for the AdsbExchange API"
+        description="The base URL for the ADSB Exchange API"
     )
     adsbexchange_api_key: str = Field(
         default="",
-        description="The API key for the AdsbExchange API",
+        description="The API key for the ADSB Exchange API",
         repr=False,
         exclude=True
     )
@@ -249,9 +276,17 @@ class AdsbExchangeConfig(BaseConfig):
 
 class AdsbExchangeClient(BaseClient):
     """
-    Client for the AdsbExchange API.
+    Client for interacting with the ADSB Exchange API.
+    Provides methods for retrieving aircraft data using various search criteria.
     """
+
     def __init__(self, config: Optional[AdsbExchangeConfig] = None):
+        """
+        Initialize the ADSB Exchange client.
+
+        Args:
+            config: Optional configuration object. If not provided, a default configuration will be used.
+        """
         config = config or AdsbExchangeConfig()
         BaseClient.__init__(
             self,
@@ -264,13 +299,22 @@ class AdsbExchangeClient(BaseClient):
         )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.get_aircraft_from_adsbexchange_by_registration.cache_close()
-        await self.get_aircraft_from_adsbexchange_by_icao24.cache_close()
-        await self.get_aircraft_from_adsbexchange_by_callsign.cache_close()
-        await self.get_aircraft_from_adsbexchange_by_squawk.cache_close()
-        await self.get_military_aircrafts_from_adsbexchange.cache_close()
-        await self.get_aircraft_from_adsbexchange_within_range.cache_close()
-        await super(AdsbExchangeClient, self).__aexit__(exc_type, exc_val, exc_tb)
+        """
+        Exit the async context manager.
+        Clears the LRU cache before closing.
+
+        Args:
+            exc_type: The type of exception that was raised, if any.
+            exc_val: The exception value that was raised, if any.
+            exc_tb: The traceback of the exception, if any.
+        """
+        self.get_aircraft_from_adsbexchange_by_registration.cache_clear()
+        self.get_aircraft_from_adsbexchange_by_icao24.cache_clear()
+        self.get_aircraft_from_adsbexchange_by_callsign.cache_clear()
+        self.get_aircraft_from_adsbexchange_by_squawk.cache_clear()
+        self.get_military_aircrafts_from_adsbexchange.cache_clear()
+        self.get_aircraft_from_adsbexchange_within_range.cache_clear()
+        await super().__aexit__(exc_type, exc_val, exc_tb)
 
     @alru_cache(maxsize=1000)
     async def get_aircraft_from_adsbexchange_by_registration(
@@ -278,17 +322,17 @@ class AdsbExchangeClient(BaseClient):
         registration: str
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get aircraft information from ADSB Exchange by registration.
+        Get aircraft data by registration number.
 
         Args:
-            registration: The registration of the aircraft.
+            registration: The aircraft registration number.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The aircraft information.
+            An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/registration/{registration}".format(
-            registration=registration.strip()
-        )) as response:
+        async with self._session.get(
+            f"/v2/registration/{registration}",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
@@ -298,17 +342,17 @@ class AdsbExchangeClient(BaseClient):
         icao24: str
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get aircraft information from ADSB Exchange by ICAO24.
+        Get aircraft data by ICAO24 address.
 
         Args:
-            icao24: The ICAO24 of the aircraft.
+            icao24: The ICAO24 address of the aircraft.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The aircraft information.
+            An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/icao/{icao24}".format(
-            icao24=icao24.strip()
-        )) as response:
+        async with self._session.get(
+            f"/v2/icao/{icao24.lower().strip()}",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
@@ -318,17 +362,17 @@ class AdsbExchangeClient(BaseClient):
         callsign: str
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get aircraft information from ADSB Exchange by callsign.
+        Get aircraft data by callsign.
 
         Args:
-            callsign: The callsign of the aircraft.
+            callsign: The aircraft callsign.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The aircraft information.
+            An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/callsign/{callsign}".format(
-            callsign=callsign.lower().strip()
-        )) as response:
+        async with self._session.get(
+            f"/v2/callsign/{callsign.lower().strip()}",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
@@ -338,17 +382,17 @@ class AdsbExchangeClient(BaseClient):
         squawk: str
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get aircraft information from ADSB Exchange by squawk.
+        Get aircraft data by squawk code.
 
         Args:
-            squawk: The squawk of the aircraft.
+            squawk: The aircraft squawk code.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The aircraft information.
+            An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/sqk/{squawk}".format(
-            squawk=squawk.strip()
-        )) as response:
+        async with self._session.get(
+            f"/v2/sqk/{squawk.strip()}",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
@@ -357,12 +401,14 @@ class AdsbExchangeClient(BaseClient):
         self,
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get military aircrafts from ADSB Exchange.
+        Get data for all military aircraft.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The military aircrafts information.
+            An AdsbExchangeResponse containing the military aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/mil") as response:
+        async with self._session.get(
+            "/v2/mil",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
 
@@ -373,19 +419,17 @@ class AdsbExchangeClient(BaseClient):
         radius: int
     ) -> Optional[AdsbExchangeResponse]:
         """
-        Get aircraft information from ADSB Exchange within a range.
+        Get aircraft data within a specified range of a location.
 
         Args:
-            center: The center of the range.
-            radius: The radius of the range in nautical miles.
+            center: The center location (latitude, longitude).
+            radius: The radius in nautical miles.
 
         Returns:
-            Optional[AdsbExchangeResponse]: The aircraft information.
+            An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
-        async with self._session.get("/v2/lat/{lat}/lon/{lon}/dist/{radius}".format(
-            lat=center.latitude,
-            lon=center.longitude,
-            radius=radius
-        )) as response:
+        async with self._session.get(
+            f"/v2/lat/{center.latitude}/lon/{center.longitude}/dist/{radius}",
+        ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None

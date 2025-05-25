@@ -1,3 +1,8 @@
+"""
+Map layers module for the Local Flight Map application.
+Provides classes and utilities for managing map layers and controls.
+"""
+
 import folium
 from folium.plugins import MousePosition, MiniMap, Fullscreen
 from dataclasses import dataclass
@@ -7,10 +12,25 @@ from .config import MapConfig
 
 
 class MapLayers:
-    """Map layers"""
+    """
+    Manages the layers and controls for the flight map.
+    Handles initialization and management of map tiles, markers, and UI controls.
+    """
 
     @dataclass
     class _Layers:
+        """
+        Internal class for storing map layer instances.
+
+        Attributes:
+            world_imagery: Tile layer for satellite imagery.
+            opnvkarte: Tile layer for OpenStreetMap-based transportation map.
+            mouse_position: Control showing current mouse coordinates.
+            layer_control: Control for toggling layer visibility.
+            cluster_group: Group for clustering aircraft markers.
+            minimap: Small overview map in the corner.
+            full_screen: Control for toggling fullscreen mode.
+        """
         world_imagery: folium.TileLayer
         opnvkarte: folium.TileLayer
         mouse_position: MousePosition
@@ -21,19 +41,35 @@ class MapLayers:
 
         @classmethod
         def from_scratch(cls) -> 'MapLayers._Layers':
-            """Create a new instance from scratch"""
+            """
+            Create a new instance with all attributes set to None.
+
+            Returns:
+                A new _Layers instance with all attributes initialized to None.
+            """
             return cls(**dict.fromkeys(cls.__annotations__.keys(), None))
 
     def __init__(self, map_instance: folium.Map, config: MapConfig):
+        """
+        Initialize the map layers.
+
+        Args:
+            map_instance: The Folium map instance to add layers to.
+            config: The map configuration containing layer settings.
+        """
         self._map = map_instance
         self._config = config
         self._initialize_layers()
 
     def _initialize_layers(self):
-        """Initialize the layers"""
+        """
+        Initialize all map layers and controls.
+        Sets up tile layers, marker clustering, and UI controls.
+        """
         if not hasattr(self, '_layers'):
             self._layers = MapLayers._Layers.from_scratch()
 
+        # Initialize tile layers
         self._layers.world_imagery = folium.TileLayer(
             name="World Imagery",
             tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -93,7 +129,10 @@ class MapLayers:
         )
 
     def add_to_map(self):
-        """Add all layers to the map"""
+        """
+        Add all layers and controls to the map.
+        This method should be called after initialization to display the layers.
+        """
         self._layers.opnvkarte.add_to(self._map)
         self._layers.world_imagery.add_to(self._map)
         self._layers.mouse_position.add_to(self._map)

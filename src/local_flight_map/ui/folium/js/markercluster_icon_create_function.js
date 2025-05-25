@@ -1,3 +1,9 @@
+/**
+ * Create a custom icon for marker clusters
+ * Generates a cloud icon with the number of markers in the cluster
+ * @param {L.MarkerCluster} cluster - The marker cluster to create an icon for
+ * @returns {L.DivIcon} A div icon containing the cluster visualization
+ */
 (cluster) => {
   var count = cluster.getChildCount();
   var size = Math.min(40 + (count * 2), 160);

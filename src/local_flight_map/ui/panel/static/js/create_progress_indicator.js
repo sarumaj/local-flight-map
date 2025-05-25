@@ -1,3 +1,8 @@
+/**
+ * Creates a progress bar element for loading indicators
+ * The progress bar is centered on the screen and shows loading progress
+ * @returns {void}
+ */
 function createProgressBar() {
     // Check if progress bar already exists
     if (document.getElementById('progress')) {
@@ -45,6 +50,10 @@ function createProgressBar() {
     }
 }
 
+/**
+ * Removes the progress bar element from the DOM
+ * @returns {void}
+ */
 function removeProgressBar() {
     const progressBar = document.getElementById('progress');
     if (progressBar) {

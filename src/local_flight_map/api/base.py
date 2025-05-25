@@ -1,3 +1,8 @@
+"""
+Base module for the API package.
+Provides base classes and utilities for API clients and data structures.
+"""
+
 import aiohttp
 from typing import Optional, NamedTuple, Dict, Any, List, Union, Tuple
 import math
@@ -8,11 +13,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Location(NamedTuple):
+    """
+    Represents a geographical location with latitude and longitude.
+
+    Attributes:
+        latitude: The latitude in degrees (-90 to 90)
+        longitude: The longitude in degrees (-180 to 180)
+    """
     latitude: float
     longitude: float
 
 
 class BBox(NamedTuple):
+    """
+    Represents a bounding box with minimum and maximum latitude and longitude.
+
+    Attributes:
+        min_lat: The minimum latitude (south boundary)
+        max_lat: The maximum latitude (north boundary)
+        min_lon: The minimum longitude (west boundary)
+        max_lon: The maximum longitude (east boundary)
+    """
     min_lat: float  # South
     max_lat: float  # North
     min_lon: float  # West
@@ -20,10 +41,10 @@ class BBox(NamedTuple):
 
     def validate(self):
         """
-        Validate the bounding box.
+        Validate the bounding box coordinates.
 
         Raises:
-            ValueError: If the bounding box is invalid.
+            ValueError: If any coordinate is out of valid range or if min values are greater than max values.
         """
         if 90 < self.min_lat or self.min_lat < -90:
             raise ValueError(f"Invalid latitude value: {self.min_lat}")
@@ -41,17 +62,17 @@ class BBox(NamedTuple):
     @classmethod
     def get_bbox_by_radius(cls, center: Location, radius: float) -> 'BBox':
         """
-        Get a bounding box by a center and a radius.
+        Calculate a bounding box from a center point and radius.
 
         Args:
-            center: The center of the bounding box in degrees (latitude, longitude)
-            radius: The radius of the bounding box in nautical miles
+            center: The center location (latitude, longitude)
+            radius: The radius in nautical miles
 
         Returns:
-            A BBox object
+            A BBox object representing the calculated bounding box
 
         Raises:
-            ValueError: If radius is negative or if latitude is at the poles
+            ValueError: If radius is negative or if center is too close to the poles
         """
         if radius < 0:
             raise ValueError("Radius must be non-negative")
@@ -74,10 +95,12 @@ class BBox(NamedTuple):
 
     def to_center_and_radius(self) -> Tuple[Location, float]:
         """
-        Convert the bounding box to a center and a radius.
+        Convert the bounding box to a center point and radius.
 
         Returns:
-            A tuple containing the center Location and radius in nautical miles.
+            A tuple containing:
+                - Location: The center point of the bounding box
+                - float: The radius in nautical miles
         """
         center = Location(
             latitude=(self.min_lat + self.max_lat) / 2,
@@ -95,15 +118,31 @@ class BBox(NamedTuple):
 
 class ResponseObject:
     """
-    Base class for all response objects.
+    Base class for API response objects.
+    Provides methods for converting between different data formats.
     """
     __annotations__: Dict[str, Any] = {}
 
     def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the object to a dictionary.
+
+        Returns:
+            A dictionary representation of the object
+        """
         return asdict(self)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ResponseObject':
+        """
+        Create an object from a dictionary.
+
+        Args:
+            data: The dictionary to create the object from
+
+        Returns:
+            A new ResponseObject instance
+        """
         defaults = {}
         for field_name, field_type in cls.__annotations__.items():
             if hasattr(field_type, "__origin__"):
@@ -118,18 +157,46 @@ class ResponseObject:
         return cls(**defaults)
 
     def to_json(self) -> str:
+        """
+        Convert the object to a JSON string.
+
+        Returns:
+            A JSON string representation of the object
+        """
         return json.dumps(self.to_dict())
 
     @classmethod
     def from_json(cls, json_str: str) -> 'ResponseObject':
+        """
+        Create an object from a JSON string.
+
+        Args:
+            json_str: The JSON string to create the object from
+
+        Returns:
+            A new ResponseObject instance
+        """
         return cls.from_dict(json.loads(json_str))
 
     @classmethod
     def from_list(cls, data: List[Any]) -> 'ResponseObject':
+        """
+        Create an object from a list of values.
+
+        Args:
+            data: The list of values to create the object from
+
+        Returns:
+            A new ResponseObject instance
+        """
         return cls.from_dict(dict(zip_longest(cls.__annotations__.keys(), data)))
 
 
 class BaseConfig(BaseSettings):
+    """
+    Base configuration class for API clients.
+    Uses pydantic for configuration management.
+    """
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -142,15 +209,16 @@ class BaseConfig(BaseSettings):
 
 class BaseClient:
     """
-    Base class for all API clients.
+    Base class for API clients.
+    Provides common functionality for making HTTP requests and managing sessions.
     """
     def __init__(self, config: Optional[BaseConfig] = None, **session_params: Dict[str, Any]):
         """
-        Initialize the client.
+        Initialize the API client.
 
         Args:
-            config: The configuration to use for the client.
-            session_params: Additional parameters for the session.
+            config: Optional configuration object
+            session_params: Additional parameters for the aiohttp session
         """
         self._config = config or BaseConfig()
         self._session_params = session_params
@@ -158,7 +226,7 @@ class BaseClient:
 
     async def close(self):
         """
-        Close the client.
+        Close the client's HTTP session.
         """
         if self._session:
             await self._session.close()
@@ -166,29 +234,38 @@ class BaseClient:
 
     async def __aenter__(self) -> 'BaseClient':
         """
-        Enter the context manager.
+        Enter the async context manager.
+
+        Returns:
+            self: The initialized client instance
         """
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Exit the context manager.
+        Exit the async context manager.
+        Closes the HTTP session.
+
+        Args:
+            exc_type: The type of exception that was raised, if any
+            exc_val: The exception value that was raised, if any
+            exc_tb: The traceback of the exception, if any
         """
         _ = (exc_type, exc_val, exc_tb)
         await self.close()
 
     async def _handle_response(self, response: aiohttp.ClientResponse) -> Optional[Any]:
         """
-        Handle the response from the API.
+        Handle an HTTP response from the API.
 
         Args:
-            response: The response from the API.
+            response: The HTTP response to handle
 
         Returns:
-            The response from the API. None if the response is 404.
+            The parsed JSON response, or None if the response was 404
 
         Raises:
-            aiohttp.ClientError: If the response is not successful.
+            aiohttp.ClientError: If the response indicates an error
         """
         if response.status == 404:
             return None

@@ -1,3 +1,8 @@
+"""
+HexDB API module for the Local Flight Map application.
+Provides classes and utilities for interacting with the HexDB API to fetch aircraft, route, and airport information.
+"""
+
 from typing import Optional, Dict, Any
 from async_lru import alru_cache
 from dataclasses import dataclass
@@ -9,7 +14,10 @@ from .base import BaseClient, BaseConfig, ResponseObject
 @dataclass
 class AircraftInformation(ResponseObject):
     """
-    Represents information about an aircraft.
+    Represents information about an aircraft from the HexDB API.
+
+    This class stores detailed information about an aircraft, including its type,
+    manufacturer, registration, and ownership details.
 
     Attributes:
         ICAOTypeCode: The ICAO type code of the aircraft.
@@ -32,11 +40,15 @@ class AircraftInformation(ResponseObject):
         """
         Patch the properties of a GeoJSON feature with the aircraft information.
 
+        This method updates the properties of a GeoJSON feature with the aircraft
+        information, converting the field names to lowercase and using underscores
+        for spaces.
+
         Args:
             geojson: The GeoJSON feature to patch.
 
         Returns:
-            The patched GeoJSON feature.
+            The patched GeoJSON feature with updated properties.
         """
         geojson["properties"] = geojson.get("properties", {})
         geojson["properties"].update({
@@ -54,12 +66,15 @@ class AircraftInformation(ResponseObject):
 @dataclass
 class RouteInformation(ResponseObject):
     """
-    Represents information about a route.
+    Represents information about a flight route from the HexDB API.
+
+    This class stores information about a flight's route, including the flight number,
+    route details, and when the information was last updated.
 
     Attributes:
         flight: The flight number of the route.
         route: The route of the flight.
-        update_time: The time of the update of the route in seconds since epoch (Unix time).
+        updatetime: The time of the update of the route in seconds since epoch (Unix time).
     """
     flight: str
     route: str
@@ -68,6 +83,16 @@ class RouteInformation(ResponseObject):
     def patch_geojson_properties(self, geojson: Dict[str, Any]) -> Dict[str, Any]:
         """
         Patch the properties of a GeoJSON feature with the route information.
+
+        This method updates the properties of a GeoJSON feature with the route
+        information, converting the field names to lowercase and using underscores
+        for spaces.
+
+        Args:
+            geojson: The GeoJSON feature to patch.
+
+        Returns:
+            The patched GeoJSON feature with updated properties.
         """
         geojson["properties"] = geojson.get("properties", {})
         geojson["properties"].update({
@@ -81,7 +106,10 @@ class RouteInformation(ResponseObject):
 @dataclass
 class AirportInformation(ResponseObject):
     """
-    Represents information about an airport.
+    Represents information about an airport from the HexDB API.
+
+    This class stores detailed information about an airport, including its location,
+    codes, and region information.
 
     Attributes:
         airport: The airport code of the airport.
@@ -101,6 +129,15 @@ class AirportInformation(ResponseObject):
     region_name: str
 
     def to_geojson(self) -> Dict[str, Any]:
+        """
+        Convert the airport information to GeoJSON format.
+
+        This method creates a GeoJSON feature representing the airport's location
+        and properties.
+
+        Returns:
+            A GeoJSON feature containing the airport's location and properties.
+        """
         return {
             "type": "Feature",
             "geometry": {
@@ -121,7 +158,10 @@ class AirportInformation(ResponseObject):
 
 class HexDbConfig(BaseConfig):
     """
-    Config for the HexDB API.
+    Configuration class for the HexDB API client.
+
+    This class manages the configuration settings for connecting to the HexDB API,
+    including the base URL and any authentication requirements.
 
     Attributes:
         hexdb_base_url: The base URL for the HexDB API.
@@ -134,9 +174,26 @@ class HexDbConfig(BaseConfig):
 
 class HexDbClient(BaseClient):
     """
-    Client for the HexDB API.
+    Client for interacting with the HexDB API.
+
+    This class provides methods for fetching aircraft, route, and airport information
+    from the HexDB API. It includes caching to improve performance and reduce API calls.
+
+    The client supports:
+    - Fetching aircraft information by ICAO24 code
+    - Fetching route information by callsign
+    - Fetching airport information by ICAO code
+    - Automatic caching of responses
+    - Proper cleanup of resources
     """
     def __init__(self, config: Optional[HexDbConfig] = None):
+        """
+        Initialize a new HexDB API client.
+
+        Args:
+            config: Optional configuration for the client. If not provided,
+                   default configuration will be used.
+        """
         config = config or HexDbConfig()
         BaseClient.__init__(
             self,
@@ -145,6 +202,17 @@ class HexDbClient(BaseClient):
         )
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Clean up resources when exiting the async context.
+
+        This method ensures that all cached data is properly cleared and
+        connections are closed.
+
+        Args:
+            exc_type: The type of exception that was raised, if any.
+            exc_val: The exception value that was raised, if any.
+            exc_tb: The traceback of the exception, if any.
+        """
         await self.get_aircraft_information_from_hexdb.cache_close()
         await self.get_airport_information_from_hexdb.cache_close()
         await self.get_route_information_from_hexdb.cache_close()
@@ -156,17 +224,20 @@ class HexDbClient(BaseClient):
         callsign: str,
     ) -> Optional[RouteInformation]:
         """
-        Get route information from HexDB.
+        Get route information from HexDB by callsign.
+
+        This method fetches route information for a specific flight callsign.
+        The response is cached to improve performance for repeated requests.
 
         Args:
             callsign: The callsign of the aircraft.
 
         Returns:
-            Optional[RouteInformation]: The route information.
+            Optional[RouteInformation]: The route information if found, None otherwise.
         """
-        async with self._session.get("/api/v1/route/icao/{callsign}".format(
-            callsign=callsign.lower().strip()
-        )) as response:
+        async with self._session.get(
+            f"/api/v1/route/icao/{callsign.lower().strip()}"
+        ) as response:
             data = await self._handle_response(response)
             return RouteInformation.from_dict(data) if data else None
 
@@ -176,17 +247,20 @@ class HexDbClient(BaseClient):
         icao24: str
     ) -> Optional[AirportInformation]:
         """
-        Get airport information from HexDB.
+        Get airport information from HexDB by ICAO code.
+
+        This method fetches detailed information about an airport using its ICAO code.
+        The response is cached to improve performance for repeated requests.
 
         Args:
             icao24: The ICAO code of the airport.
 
         Returns:
-            Optional[AirportInformation]: The airport information.
+            Optional[AirportInformation]: The airport information if found, None otherwise.
         """
-        async with self._session.get("/api/v1/airport/icao/{icao24}".format(
-            icao24=icao24.lower().strip()
-        )) as response:
+        async with self._session.get(
+            f"/api/v1/airport/icao/{icao24.lower().strip()}"
+        ) as response:
             data = await self._handle_response(response)
             return AirportInformation.from_dict(data) if data else None
 
@@ -196,16 +270,19 @@ class HexDbClient(BaseClient):
         icao24: str
     ) -> Optional[AircraftInformation]:
         """
-        Get aircraft information from HexDB.
+        Get aircraft information from HexDB by ICAO24 code.
+
+        This method fetches detailed information about an aircraft using its ICAO24 code.
+        The response is cached to improve performance for repeated requests.
 
         Args:
             icao24: The ICAO code of the aircraft.
 
         Returns:
-            Optional[AircraftInformation]: The aircraft information.
+            Optional[AircraftInformation]: The aircraft information if found, None otherwise.
         """
-        async with self._session.get("/api/v1/aircraft/icao/{icao24}".format(
-            icao24=icao24.lower().strip()
-        )) as response:
+        async with self._session.get(
+            f"/api/v1/aircraft/{icao24.lower().strip()}"
+        ) as response:
             data = await self._handle_response(response)
             return AircraftInformation.from_dict(data) if data else None

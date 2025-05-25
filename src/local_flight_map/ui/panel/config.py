@@ -1,13 +1,37 @@
+"""
+Configuration module for the Local Flight Map application.
+Provides configuration classes and settings for the map interface.
+"""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Literal
+import logging
 
 from ...api.base import Location, BBox
 
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("local-flight-map")
+
+
 class MapConfig(BaseSettings):
     """
-    Run the local flight map UI.
+    Configuration class for the Local Flight Map application.
+    Manages settings for the map display, data processing, and application behavior.
+
+    Attributes:
+        map_center: The center coordinates of the map.
+        map_radius: The radius of the map in nautical miles.
+        map_zoom_start: The initial zoom level of the map.
+        map_max_bounds: Whether to restrict the map to maximum bounds.
+        map_control_scale: Whether to display the scale control.
+        map_refresh_interval: The interval between map updates in milliseconds.
+        data_batch_size: The number of aircraft to process in each batch.
+        data_max_threads: The maximum number of concurrent threads for data processing.
+        data_provider: The source of aircraft data (adsbexchange or opensky).
+        app_port: The port number for the web application.
+        app_dev_mode: Whether to run in development mode.
     """
     map_center: Location = Field(
         default_factory=lambda: Location(latitude=50.15, longitude=8.3166667),
@@ -71,19 +95,42 @@ class MapConfig(BaseSettings):
 
     @property
     def map_bbox(self) -> BBox:
-        """Get the bounding box for the map"""
+        """
+        Get the bounding box for the map.
+        Calculates the bounding box based on the current center and radius.
+
+        Returns:
+            A BBox object representing the map's boundaries.
+        """
         return BBox.get_bbox_by_radius(self.map_center, self.map_radius)
 
     @map_bbox.setter
     def map_bbox(self, bbox: BBox) -> None:
-        """Set the bounding box for the map and update center and radius accordingly"""
+        """
+        Set the bounding box for the map and update center and radius accordingly.
+        Validates the bounding box and updates the map's center and radius.
+
+        Args:
+            bbox: The new bounding box to set.
+
+        Raises:
+            ValueError: If the bounding box is invalid.
+        """
         bbox.validate()
         center, radius = bbox.to_center_and_radius()
         self.map_center = center
         self.map_radius = radius
 
     def get_map_bounds(self):
-        """Get the map bounds as a list of coordinates"""
+        """
+        Get the map bounds as a list of coordinates.
+        Returns the southwest and northeast corners of the map.
+
+        Returns:
+            A list containing two coordinate pairs:
+            - [min_lat, min_lon]: The southwest corner
+            - [max_lat, max_lon]: The northeast corner
+        """
         return [
             [self.map_bbox.min_lat, self.map_bbox.min_lon],
             [self.map_bbox.max_lat, self.map_bbox.max_lon]

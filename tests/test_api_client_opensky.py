@@ -133,7 +133,7 @@ class TestOpenSkyClient:
             async with opensky_client:
                 # Test with various parameters
                 time = datetime(2023, 3, 15, 12, 0)
-                icao24 = ["a83547", "b12345"]
+                icao24 = ("a83547", "b12345")
                 bbox = BBox(min_lat=40.0, max_lat=41.0, min_lon=-74.0, max_lon=-73.0)
 
                 await opensky_client.get_states_from_opensky(

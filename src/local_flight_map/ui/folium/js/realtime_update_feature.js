@@ -1,3 +1,15 @@
+/**
+ * Update a feature's layer with new data
+ * Handles different geometry types and animates position changes
+ * @param {Object} feature - The new feature data
+ * @param {Object} feature.geometry - The geometry object
+ * @param {string} feature.geometry.type - The geometry type
+ * @param {Array} feature.geometry.coordinates - The geometry coordinates
+ * @param {Object} feature.properties - The feature properties
+ * @param {number} feature.properties.track_angle - The aircraft's track angle
+ * @param {L.Layer} oldLayer - The existing layer to update
+ * @returns {L.Layer|null} The updated layer or null if no update was performed
+ */
 (feature, oldLayer) => {
 
   if (!oldLayer) {
@@ -31,6 +43,11 @@
           var endLng = newLatLng.lng;
           var isAnimating = true;
 
+          /**
+           * Cubic easing function for smooth animation
+           * @param {number} t - Progress value between 0 and 1
+           * @returns {number} Eased progress value
+           */
           function easeInOutCubic(t) {
             return t < 0.5
               ? 4 * t * t * t
@@ -42,6 +59,11 @@
             isAnimating = false;
           });
 
+          /**
+           * Animation frame function
+           * Updates layer position based on eased progress
+           * @param {number} timestamp - Current animation timestamp
+           */
           function animate(timestamp) {
             if (!startTime) {
               startTime = timestamp;

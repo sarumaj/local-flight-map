@@ -1,5 +1,16 @@
-// Flight marker utilities
+/**
+ * Utility functions for handling flight markers on the map
+ * Provides methods for calculating marker sizes, generating flight info HTML,
+ * and managing vertical speed indicators
+ */
 const FlightMarkerUtils = {
+  /**
+   * Calculate the size of a marker based on aircraft altitude
+   * @param {Object} props - Aircraft properties
+   * @param {number} props.baro_altitude - Barometric altitude
+   * @param {number} props.geom_altitude - Geometric altitude
+   * @returns {number} Marker size in pixels (20-80)
+   */
   calculateMarkerSize(props) {
     if (!props) return 48;
 
@@ -14,6 +25,13 @@ const FlightMarkerUtils = {
     return Math.min(Math.max(normalizedSize, 20), 80);
   },
 
+  /**
+   * Calculate vertical speed indicator properties
+   * @param {Object} props - Aircraft properties
+   * @param {number} props.baro_rate_of_climb_descent - Barometric rate of climb/descent
+   * @param {number} props.geom_rate_of_climb_descent - Geometric rate of climb/descent
+   * @returns {Object} Object containing vsColor and vsSymbol
+   */
   calculateVerticalSpeedIndicator(props) {
     if (!props) return { vsColor: '#a0a0a0', vsSymbol: '→' };
 
@@ -23,6 +41,9 @@ const FlightMarkerUtils = {
     return { vsColor, vsSymbol };
   },
 
+  /**
+   * CSS styles for flight information display
+   */
   flightInfoStyles: {
     container: `
             position: absolute;
@@ -60,6 +81,12 @@ const FlightMarkerUtils = {
         `
   },
 
+  /**
+   * Generate HTML for flight information display
+   * @param {Object} props - Aircraft properties
+   * @param {number} markerSize - Size of the marker in pixels
+   * @returns {string} HTML string for flight information
+   */
   generateFlightInfoHtml(props, markerSize) {
     if (!props) return '';
 
@@ -77,6 +104,11 @@ const FlightMarkerUtils = {
         `;
   },
 
+  /**
+   * Add shadow effect to marker icon
+   * @param {string} html - Original HTML string
+   * @returns {string} HTML string with shadow effect
+   */
   addIconShadow(html) {
     if (!html) return '';
     return html.replace(
@@ -86,13 +118,19 @@ const FlightMarkerUtils = {
   }
 };
 
-// Global config cache
+/**
+ * Configuration cache for managing API requests
+ */
 const configCache = {
   interval: null,
   lastFetch: 0,
   fetchPromise: null
 };
 
+/**
+ * Get configuration with caching
+ * @returns {Promise<Object>} Configuration object with interval
+ */
 async function getConfig() {
   const now = Date.now();
   const cacheDuration = 60000; // Cache for 1 minute

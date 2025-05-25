@@ -61,7 +61,7 @@ class TestHexDbClient:
 
                 # Verify the API call
                 mock_session.get.assert_called_once_with(
-                    "/api/v1/aircraft/icao/a83547"
+                    "/api/v1/aircraft/a83547"
                 )
 
     @pytest.mark.asyncio

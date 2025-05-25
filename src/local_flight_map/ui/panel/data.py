@@ -1,28 +1,53 @@
+"""
+Data source module for the Local Flight Map application.
+Handles aircraft data processing, enrichment, and conversion to GeoJSON format.
+"""
+
 from typing import Dict, Any, Union
 import asyncio
 
 from ...api import ApiClient
 from ...api.adsbexchange import AdsbExchangeResponse
 from ...api.opensky import States
-from .config import MapConfig
+from .config import MapConfig, logger
 
 
 class DataSource:
-    """Handles aircraft data processing and enrichment"""
+    """
+    Handles aircraft data processing and enrichment.
+    Manages data retrieval from different providers and enriches it with additional information.
+    """
 
     def __init__(self, client: ApiClient, config: MapConfig):
+        """
+        Initialize the data source.
+
+        Args:
+            client: The API client for fetching aircraft data.
+            config: The map configuration containing data source settings.
+        """
         self._client = client
         self._config = config
+        self._hexdb_semaphore = asyncio.Semaphore(5)  # Limit concurrent HexDB API calls
 
     def _generate_tags(self, props: Dict[str, Any]) -> list[str]:
         """
-        Generate tags for aircraft properties.
+        Generate tags for aircraft properties based on their characteristics.
 
         Args:
             props: The properties of the aircraft.
 
         Returns:
-            The list of tags.
+            A list of tags describing the aircraft's characteristics.
+            Tags are generated for:
+            - ICAO24 code
+            - Aircraft type
+            - Callsign
+            - Registration
+            - Altitude (low/medium/high)
+            - Speed (slow/medium/fast)
+            - Emergency status
+            - Category
         """
         tags = []
         tags.append(f"icao24:{props.get('icao24_code')}")
@@ -74,28 +99,54 @@ class DataSource:
         return tags
 
     async def _process_feature(self, feature: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a single feature with rate limiting"""
+        """
+        Process a single aircraft feature with rate limiting.
+        Enriches the feature with additional information from HexDB.
+
+        Args:
+            feature: The aircraft feature to process.
+
+        Returns:
+            The enriched aircraft feature.
+        """
         if not hasattr(self, "_semaphore"):
             self._semaphore = asyncio.Semaphore(self._config.data_max_threads)
 
         async with self._semaphore:
-            icao24 = feature["properties"]["icao24_code"]
-            for result in await asyncio.gather(
-                self._client.get_aircraft_information_from_hexdb(icao24),
-                self._client.get_route_information_from_hexdb(icao24)
-            ):
-                if result:
-                    feature["properties"] = result.patch_geojson_properties(feature["properties"])
+            try:
+                icao24 = feature["properties"]["icao24_code"]
+                async with self._hexdb_semaphore:
+                    for result in await asyncio.gather(
+                        self._client.get_aircraft_information_from_hexdb(icao24),
+                        self._client.get_route_information_from_hexdb(icao24),
+                        return_exceptions=True
+                    ):
+                        if isinstance(result, Exception):
+                            logger.error(f"Error processing feature {icao24}: {str(result)}")
+                            continue
+                        if result:
+                            feature["properties"] = result.patch_geojson_properties(feature["properties"])
 
-            feature["properties"]["tags"] = self._generate_tags(feature["properties"])
-            return feature
+                feature["properties"]["tags"] = self._generate_tags(feature["properties"])
+
+            except Exception as e:
+                icao24 = feature.get('properties', {}).get('icao24_code', 'unknown')
+                logger.error(f"Error processing feature {icao24}: {str(e)}")
+
+            finally:
+                return feature
 
     async def get_aircrafts_geojson(self) -> Dict[str, Any]:
         """
         Get aircraft data in GeoJSON format.
+        Retrieves data from the configured provider and processes it in batches.
 
         Returns:
-            The aircraft data in GeoJSON format.
+            A GeoJSON feature collection containing the processed aircraft data.
+            Returns None if no data is available.
+
+        Raises:
+            ValueError: If the configured data provider is invalid.
         """
         match self._config.data_provider:
             case 'adsbexchange':

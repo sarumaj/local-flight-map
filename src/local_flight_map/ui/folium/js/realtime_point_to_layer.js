@@ -1,3 +1,15 @@
+/**
+ * Convert a GeoJSON point feature to a Leaflet marker
+ * Creates a marker with an aircraft icon, flight information, and popup
+ * @param {Object} feature - The GeoJSON feature to convert
+ * @param {string} feature.geometry.type - The geometry type (must be 'Point')
+ * @param {Object} feature.properties - Properties of the aircraft
+ * @param {number} feature.properties.track_angle - The aircraft's track angle
+ * @param {string} feature.properties.icao24_code - The ICAO24 code of the aircraft
+ * @param {Array<string>} feature.properties.tags - Array of tags for the aircraft
+ * @param {L.LatLng} latlng - The latitude/longitude coordinates for the marker
+ * @returns {L.Marker|null} A Leaflet marker or null if the feature is not a point
+ */
 (feature, latlng) => {
   // Only create markers for point features
   if (feature.geometry.type !== 'Point') {
@@ -6,6 +18,10 @@
 
   const markerSize = calculateMarkerSize(feature.properties);
 
+  /**
+   * Available aircraft icons with their properties
+   * @type {Array<{src: string, initial_rotation: number, weight: number, view_angle: number}>}
+   */
   const icons = [
     { src: '/ui/static/icons/civil_helicopter.png', initial_rotation: 135, weight: 1, view_angle: 45 },
     { src: '/ui/static/icons/civil_plane_1.png', initial_rotation: 45, weight: 8, view_angle: 90 },
@@ -32,6 +48,10 @@
     }
   }
 
+  /**
+   * Create a div icon for the marker
+   * @type {L.DivIcon}
+   */
   var icon = L.divIcon({
     className: 'rotated-icon',
     html: window.addIconShadow(`
@@ -61,6 +81,10 @@
     iconAnchor: [markerSize / 2, markerSize / 2]
   });
 
+  /**
+   * Create the marker with the icon
+   * @type {L.Marker}
+   */
   var marker = L.marker(latlng, {
     icon: icon,
     interactive: true,
@@ -71,7 +95,11 @@
   });
   marker.tags = (feature.properties.tags || []).filter(tag => tag.trim());
 
-  // Create popup content function to avoid recreating HTML
+  /**
+   * Create popup content for the marker
+   * @param {Object} props - Aircraft properties
+   * @returns {string} HTML content for the popup
+   */
   function createPopupContent(props) {
     const tags = (props["tags"] || []).filter(tag => tag.trim());
     var content = `
@@ -120,6 +148,10 @@
     return content;
   }
 
+  /**
+   * Create a popup for the marker
+   * @type {L.Popup}
+   */
   var popup = L.popup({
     maxWidth: 500,
     closeButton: false,
@@ -129,7 +161,10 @@
     closeButton: true
   });
 
-  // Store the popup content function and scroll position on the marker
+  /**
+   * Update the popup content while preserving scroll position
+   * @param {Object} props - New aircraft properties
+   */
   marker._updatePopupContent = function (props) {
     var popupElement = popup.getElement();
     var scrollPosition = 0;

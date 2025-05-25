@@ -1,3 +1,8 @@
+"""
+Map interface module for the Local Flight Map application.
+Provides the main interface for displaying and interacting with the flight map.
+"""
+
 import folium
 import panel as pn
 import uvicorn
@@ -7,7 +12,6 @@ from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-import logging
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -16,26 +20,33 @@ from typing import Callable, Union, Dict, Any
 import re
 import time
 import signal
-import asyncio
 from types import FrameType
 
 from ...api import ApiClient
 from .config import MapConfig
 from .layers import MapLayers
 from .data import DataSource
-from .config import BBox
-
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("local-flight-map")
+from .config import BBox, logger
 
 
 class MapInterface:
-    """Main interface for the flight map application"""
+    """
+    Main interface for the flight map application.
+    Handles map initialization, API endpoints, and user interactions.
+    """
 
     class EmptyFeatureCollection(JSONResponse):
-        """Empty feature collection"""
+        """
+        Empty feature collection response.
+        Used when no aircraft data is available or when access is denied.
+        """
         def __init__(self, **kwargs: Dict[str, Any]):
+            """
+            Initialize an empty feature collection response.
+
+            Args:
+                **kwargs: Additional keyword arguments to pass to JSONResponse.
+            """
             JSONResponse.__init__(
                 self,
                 **{
@@ -49,19 +60,32 @@ class MapInterface:
             )
 
     class SessionAuthenticator(BaseHTTPMiddleware):
-        """Session authenticator"""
+        """
+        Session authenticator middleware.
+        Handles authentication for protected routes.
+        """
         def __init__(self, app: fastapi.FastAPI, paths: Dict[re.Pattern, Response] = None):
             """
-            Initialize the session authenticator
+            Initialize the session authenticator.
 
             Args:
-                app: The FastAPI app
-                paths: Dictionary mapping regex patterns to responses for path-based authentication
+                app: The FastAPI app to add middleware to.
+                paths: Dictionary mapping regex patterns to responses for path-based authentication.
             """
             BaseHTTPMiddleware.__init__(self, app)
             self._paths = paths
 
         async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
+            """
+            Process the request and handle authentication.
+
+            Args:
+                request: The incoming request.
+                call_next: The next middleware in the chain.
+
+            Returns:
+                The response from the next middleware or an authentication response.
+            """
             if self._paths is not None:
                 for path, response in self._paths.items():
                     if path.match(request.url.path):
@@ -71,12 +95,30 @@ class MapInterface:
             return await call_next(request)
 
     class RequestLoggerMiddleware(BaseHTTPMiddleware):
-        """Request logger middleware"""
+        """
+        Request logger middleware.
+        Logs information about each request including timing and response size.
+        """
         def __init__(self, app: fastapi.FastAPI):
-            """Initialize the request logger middleware"""
+            """
+            Initialize the request logger middleware.
+
+            Args:
+                app: The FastAPI app to add middleware to.
+            """
             BaseHTTPMiddleware.__init__(self, app)
 
         async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
+            """
+            Process the request and log information about it.
+
+            Args:
+                request: The incoming request.
+                call_next: The next middleware in the chain.
+
+            Returns:
+                The response from the next middleware.
+            """
             start_time = time.time()
             response = await call_next(request)
             end_time = time.time()
@@ -91,18 +133,30 @@ class MapInterface:
 
     def __init__(self, config: MapConfig, client: ApiClient):
         """
-        Initialize the map interface
+        Initialize the map interface.
 
         Args:
-            config: The configuration for the map
+            config: The configuration for the map.
+            client: The API client for fetching aircraft data.
         """
         self._config = config
         self._client = client
         self._data = DataSource(client, config)
         self._session_secret = secrets.token_urlsafe(32)
+        self._map = None
+        self._layers = None
 
-        # Setup FastAPI app
+        self._setup_fastapi()
+        self._initialize_map()
+
+    def _setup_fastapi(self):
+        """
+        Setup FastAPI application and middleware.
+        Configures CORS, session handling, authentication, and routes.
+        """
         self._app = fastapi.FastAPI()
+
+        # Add CORS middleware
         self._app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -110,6 +164,8 @@ class MapInterface:
             allow_methods=["GET", "HEAD", "OPTIONS"],
             allow_headers=["*"],
         )
+
+        # Add session authenticator
         self._app.add_middleware(
             MapInterface.SessionAuthenticator,
             paths={
@@ -122,6 +178,8 @@ class MapInterface:
                 ),
             }
         )
+
+        # Add session middleware
         self._app.add_middleware(
             SessionMiddleware,
             secret_key=self._session_secret,
@@ -130,22 +188,35 @@ class MapInterface:
             same_site="lax",
             https_only=not self._config.app_dev_mode
         )
+
+        # Add request logger
         self._app.add_middleware(MapInterface.RequestLoggerMiddleware)
+
+        # Mount static files
         self._app.mount(
             "/ui/static",
             StaticFiles(directory=str(Path(__file__).parent / "static")),
             name="static"
         )
+
+        # Add routes
         self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
         self._app.add_api_route("/health", self.health, methods=["GET"])
         self._app.add_api_route("/ui/bbox", self.update_bbox, methods=["POST"])
+
+        # Add Panel applications
         add_applications({
             "/": self.create_map_widget,
             "/map": self.create_map_widget,  # legacy endpoint
         }, app=self._app, title="Local Flight Map")
 
-        # Initialize map
+    def _initialize_map(self):
+        """
+        Initialize the map with configuration.
+        Sets up the map view, bounds, and layers.
+        """
+        # Add Leaflet library to the head section before creating the map
         self._map = folium.Map(
             location=(self._config.map_center.latitude, self._config.map_center.longitude),
             zoom_start=self._config.map_zoom_start,
@@ -157,36 +228,59 @@ class MapInterface:
             min_lon=self._config.map_bbox.min_lon,
         )
 
-        # Set map bounds
         self._map.fit_bounds(self._config.get_map_bounds())
         self._map.options["radius"] = self._config.map_radius
 
-        # Initialize and add layers
         self._layers = MapLayers(self._map, self._config)
         self._layers.add_to_map()
 
-        # Add static scripts to the document
+        self._add_static_scripts()
+
+    def _add_static_scripts(self):
+        """
+        Add static JavaScript files to the map.
+        Includes both external scripts and inline initialization code.
+        """
+        # Add static scripts
         for script in Path(str(Path(__file__).parent / "static" / "js")).glob("*.js"):
             self._map.get_root().html.add_child(folium.Element(
-                f'<script src="/ui/static/js/{script.name}"></script>'
+                f'<script defer src="/ui/static/js/{script.name}"></script>'
             ))
 
         # Add inline map initialization script
         self._map.get_root().html.add_child(folium.Element(
-            f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
+            f'<script defer>{Path(__file__).with_suffix(".js").read_text()}</script>'
         ))
 
     async def __aenter__(self):
-        """Enter the async context manager"""
+        """
+        Enter the async context manager.
+
+        Returns:
+            self: The initialized map interface instance.
+        """
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit the async context manager"""
+        """
+        Exit the async context manager.
+        Cleans up resources and closes connections.
+
+        Args:
+            exc_type: The type of exception that was raised, if any.
+            exc_val: The exception value that was raised, if any.
+            exc_tb: The traceback of the exception, if any.
+        """
         if hasattr(self._client, '__aexit__'):
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
 
     async def health(self) -> JSONResponse:
-        """Health check endpoint"""
+        """
+        Health check endpoint.
+
+        Returns:
+            JSONResponse: A response indicating the service is healthy.
+        """
         return JSONResponse(
             content={"status": "ok"},
             status_code=200
@@ -194,10 +288,10 @@ class MapInterface:
 
     async def get_config(self) -> JSONResponse:
         """
-        Get the configuration
+        Get the current map configuration.
 
         Returns:
-            JSONResponse: The configuration
+            JSONResponse: The map configuration including bounds, center, and refresh interval.
         """
         return JSONResponse(
             content={
@@ -219,87 +313,55 @@ class MapInterface:
 
     async def get_aircrafts_geojson(self) -> JSONResponse:
         """
-        API endpoint to get aircraft data
+        API endpoint to get aircraft data in GeoJSON format.
 
         Returns:
-            JSONResponse: The aircraft data
+            JSONResponse: The aircraft data as a GeoJSON feature collection.
         """
         try:
-
-            aircrafts = await self._data.get_aircrafts_geojson()
-            logger.info(f"Getting aircraft data for {self._config.map_bbox}: length {len(aircrafts['features'])}")
-            if aircrafts is None:
-                return MapInterface.EmptyFeatureCollection(headers={"X-Status-Code": "404"})
+            data = await self._data.get_aircrafts_geojson()
             return JSONResponse(
-                content=aircrafts,
+                content=data,
                 status_code=200
             )
         except Exception as e:
-            logger.error(f"Error processing aircraft data: {e}")
-            return JSONResponse(
-                content={"error": str(e)},
-                status_code=500
+            logger.error(f"Error getting aircraft data: {e}")
+            return MapInterface.EmptyFeatureCollection(
+                headers={"X-Status-Code": "500"}
             )
 
     def create_map_widget(self):
         """
-        Create the map widget for Panel
+        Create the map widget for the Panel interface.
 
         Returns:
-            pn.pane.plot.Folium: The map widget
+            The Panel widget containing the map.
         """
-        return pn.pane.plot.Folium(self._map, sizing_mode="stretch_both")
+        return pn.pane.plot.Folium(
+            self._map,
+            sizing_mode="stretch_both"
+        )
 
     async def update_bbox(self, request: Request) -> JSONResponse:
         """
-        Update the bounding box
+        Update the map's bounding box.
 
         Args:
-            request: The request containing the new bounding box coordinates
+            request: The HTTP request containing the new bounding box coordinates.
 
         Returns:
-            JSONResponse: The response indicating success or failure
+            JSONResponse: A response indicating success or failure.
         """
         try:
             data = await request.json()
-            bounds = data.get("bounds", {})
-
-            # Update map bounds
-            self._map.options["max_lat"] = bounds.get("north")
-            self._map.options["min_lat"] = bounds.get("south")
-            self._map.options["max_lon"] = bounds.get("east")
-            self._map.options["min_lon"] = bounds.get("west")
-
-            # Create BBox and get center and radius
-            bbox = BBox(
-                min_lat=bounds.get("south"),
-                max_lat=bounds.get("north"),
-                min_lon=bounds.get("west"),
-                max_lon=bounds.get("east")
+            logger.info(f"Received bbox update request data: {data}")
+            bounds_data = data.get("bounds", data)  # Handle both nested and flat structures
+            self._config.map_bbox = BBox(
+                min_lat=bounds_data["south"],
+                max_lat=bounds_data["north"],
+                min_lon=bounds_data["west"],
+                max_lon=bounds_data["east"]
             )
-            center, radius = bbox.to_center_and_radius()
-
-            # Update map configuration
-            self._config.map_center = center
-            self._config.map_radius = radius
-            self._config.map_bbox = bbox  # Update the map_bbox property
-
-            # Force a data refresh by triggering the boundsUpdated event
-            self._map.get_root().html.add_child(folium.Element(
-                '<script>\n'
-                'window.dispatchEvent(new CustomEvent("boundsUpdated", {\n'
-                '  detail: {\n'
-                '    bounds: {\n'
-                f'      north: {bounds.get("north")},\n'
-                f'      south: {bounds.get("south")},\n'
-                f'      east: {bounds.get("east")},\n'
-                f'      west: {bounds.get("west")}\n'
-                '    }\n'
-                '  }\n'
-                '}));\n'
-                '</script>'
-            ))
-
             return JSONResponse(
                 content={"status": "ok"},
                 status_code=200
@@ -307,12 +369,15 @@ class MapInterface:
         except Exception as e:
             logger.error(f"Error updating bounding box: {e}")
             return JSONResponse(
-                content={"error": str(e)},
-                status_code=500
+                content={"status": "error", "message": str(e)},
+                status_code=400
             )
 
     async def serve(self):
-        """Start the server"""
+        """
+        Start the web server and serve the map interface.
+        Handles graceful shutdown on SIGINT and SIGTERM.
+        """
         config = uvicorn.Config(
             self._app,
             host="0.0.0.0",
@@ -320,29 +385,19 @@ class MapInterface:
             log_level="error"
         )
         server = uvicorn.Server(config)
-        shutdown_event = asyncio.Event()
 
         def handle_signal(sig: Union[signal.Signals, int], frame: FrameType):
-            _ = frame
-            logger.info(f"Received signal {signal.Signals(sig).name}, initiating graceful shutdown...")
-            shutdown_event.set()
+            """
+            Handle shutdown signals.
 
-        signal.signal(signal.SIGTERM, handle_signal)
-        signal.signal(signal.SIGINT, handle_signal)
-
-        try:
-            logger.info(f"Starting server on http://{config.host}:{config.port}")
-            server_task = asyncio.create_task(server.serve())
-            await shutdown_event.wait()
-
-            logger.info("Shutting down server...")
+            Args:
+                sig: The signal that was received.
+                frame: The current stack frame.
+            """
+            logger.info(f"Received signal {sig}, shutting down...")
             server.should_exit = True
-            await server_task
 
-        finally:
-            logger.info("Cleaning up resources...")
-            if hasattr(self._client, 'close'):
-                await self._client.close()
-            elif hasattr(self._client, '__aexit__'):
-                await self._client.__aexit__(None, None, None)
-            logger.info("Shutdown complete")
+        signal.signal(signal.SIGINT, handle_signal)
+        signal.signal(signal.SIGTERM, handle_signal)
+
+        await server.serve()
