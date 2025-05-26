@@ -11,8 +11,10 @@
         "ASTERIX",
         "asyncio",
         "baro",
+        "bbox",
         "bokeh",
         "callsign",
+        "Cantarell",
         "fastapi",
         "fasthtml",
         "FLARM",
@@ -41,10 +43,13 @@
         "pythonpath",
         "Rotorcraft",
         "rssi",
+        "sarumaj",
+        "Segoe",
         "setuptools",
         "testpaths",
         "tisb",
         "updatetime",
-        "uvicorn"
+        "uvicorn",
+        "venv"
     ]
 }

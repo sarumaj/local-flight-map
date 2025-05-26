@@ -459,8 +459,9 @@ class OpenSkyClient(BaseClient):
 
         if icao24:
             if isinstance(icao24, (tuple, list)):
-                icao24 = ','.join(map(lambda x: str(x).strip().lower(), icao24))
-            params['icao24'] = icao24
+                params['icao24'] = ','.join(map(lambda x: str(x).strip().lower(), icao24))
+            else:
+                params['icao24'] = icao24
 
         if bbox:
             bbox.validate()
@@ -508,18 +509,21 @@ class OpenSkyClient(BaseClient):
         params = {'extended': 1}
         if time_secs:
             if isinstance(time_secs, datetime):
-                time_secs = int(time_secs.timestamp())
-            params['time'] = time_secs
+                params['time'] = int(time_secs.timestamp())
+            else:
+                params['time'] = time_secs
 
         if icao24:
             if isinstance(icao24, (tuple, list)):
-                icao24 = ','.join(map(lambda x: str(x).strip().lower(), icao24))
-            params['icao24'] = icao24
+                params['icao24'] = ','.join(map(lambda x: str(x).strip().lower(), icao24))
+            else:
+                params['icao24'] = icao24
 
         if serials:
             if isinstance(serials, (tuple, list)):
-                serials = ','.join(map(lambda x: str(x).strip(), serials))
-            params['serials'] = serials
+                params['serials'] = ','.join(map(lambda x: str(x).strip(), serials))
+            else:
+                params['serials'] = serials
 
         await self._apply_opensky_rate_limit(self.get_my_states_from_opensky)
         async with self._session.get(
@@ -551,16 +555,14 @@ class OpenSkyClient(BaseClient):
         Raises:
             ValueError: If the time is too old (more than 30 days ago).
         """
+        params = {'icao24': icao24}
         if isinstance(time_secs, datetime):
-            time_secs = int(time_secs.timestamp())
+            params['time'] = int(time_secs.timestamp())
+        else:
+            params['time'] = time_secs
 
-        if int(datetime.now().timestamp()) - time_secs > 2592 * 1e3 and time_secs != 0:
+        if int(datetime.now().timestamp()) - params['time'] > 2592 * 1e3 and params['time'] != 0:
             raise ValueError("It is not possible to access flight tracks from more than 30 days in the past.")
-
-        params = {
-            'icao24': icao24,
-            'time': time_secs
-        }
 
         await self._apply_opensky_rate_limit(self.get_track_by_aircraft_from_opensky)
         async with self._session.get(
