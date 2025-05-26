@@ -48,7 +48,7 @@ jobs:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
           heroku_email: ${{ secrets.HEROKU_USER_EMAIL }}
-          healthcheck: "${{ steps.export_app_config.outputs.HEROKU_APP_URL }}/health"
+          healthcheck: "${{ steps.export_app_config.outputs.HEROKU_APP_URL }}/service/health"
           rollbackonhealthcheckfailed: true
           usedocker: true
           delay: 5

@@ -1,0 +1,4 @@
+/* Import all CSS files */
+@import 'variables.css';
+@import 'map.css';
+@import 'components.css';

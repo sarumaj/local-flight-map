@@ -8,7 +8,7 @@ import panel as pn
 import uvicorn
 from panel.io.fastapi import add_applications
 import fastapi
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -96,10 +96,10 @@ class MapInterface:
         self._app.add_middleware(
             SessionAuthenticator,
             paths={
-                re.compile(r"^/aircrafts"): MapInterface.EmptyFeatureCollection(
+                re.compile(r"^/service/aircrafts"): MapInterface.EmptyFeatureCollection(
                     headers={"X-Status-Code": "403"}
                 ),
-                re.compile(r"^/ui/static/icons/.*"): RedirectResponse(
+                re.compile(r"^/ui/static/icons/(?!forbidden\.png).*"): RedirectResponse(
                     url="/ui/static/icons/forbidden.png",
                     headers={"X-Status-Code": "403"}
                 ),
@@ -112,8 +112,9 @@ class MapInterface:
             secret_key=self._session_secret,
             session_cookie="flight_map_session",
             max_age=3600,
-            same_site="lax",
-            https_only=not self._config.app_dev_mode
+            same_site="lax" if self._config.app_dev_mode else "none",
+            https_only=not self._config.app_dev_mode,
+            path="/"
         )
 
         # Add request logger
@@ -127,10 +128,12 @@ class MapInterface:
         )
 
         # Add routes
-        self._app.add_api_route("/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
-        self._app.add_api_route("/health", self.health, methods=["GET"])
-        self._app.add_api_route("/ui/bbox", self.update_bbox, methods=["POST"])
+        self._app.add_api_route("/ui/config", self.update_config, methods=["POST"])
+        self._app.add_api_route("/auth/cookie-consent", self.handle_cookie_consent, methods=["POST"])
+        self._app.add_api_route("/auth/status", self.check_auth_status, methods=["GET"])
+        self._app.add_api_route("/service/health", self.health, methods=["GET"])
+        self._app.add_api_route("/service/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
 
         # Add Panel applications
         add_applications({
@@ -168,18 +171,26 @@ class MapInterface:
         Add static JavaScript files to the map.
         Includes both external scripts and inline initialization code.
         """
+        # Add custom CSS
+        css = """
+        <link rel="stylesheet" href="/ui/static/css/main.css">
+        """
+        root = self._map.get_root()
+        root.header.add_child(folium.Element(css))
+
         # Add static scripts
         static_scripts = list((Path(__file__).parent / "static" / "js").glob("*.js"))
+        static_scripts.sort()
         if len(static_scripts) == 0:
             raise FileNotFoundError("No static scripts found")
 
         for script in static_scripts:
-            self._map.get_root().html.add_child(folium.Element(
+            root.html.add_child(folium.Element(
                     f'<script src="/ui/static/js/{script.name}"></script>'
             ))
 
         # Add inline map initialization script
-        self._map.get_root().html.add_child(folium.Element(
+        root.html.add_child(folium.Element(
             f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
         ))
 
@@ -204,6 +215,36 @@ class MapInterface:
         """
         if hasattr(self._client, '__aexit__'):
             await self._client.__aexit__(exc_type, exc_val, exc_tb)
+
+    async def check_auth_status(self, request: Request) -> JSONResponse:
+        """
+        Check the authentication status of the current session.
+
+        Args:
+            request: The HTTP request.
+
+        Returns:
+            JSONResponse: The authentication status.
+        """
+        return JSONResponse(
+            content={
+                "authenticated": request.session.get("authenticated", False),
+                "cookie_consent": request.session.get("cookie_consent", False)
+            },
+            status_code=200
+        )
+
+    def create_map_widget(self):
+        """
+        Create the map widget for the Panel interface.
+
+        Returns:
+            The Panel widget containing the map.
+        """
+        return pn.pane.plot.Folium(
+            self._map,
+            sizing_mode="stretch_both"
+        )
 
     async def health(self) -> JSONResponse:
         """
@@ -264,19 +305,52 @@ class MapInterface:
                 headers={"X-Status-Code": "500"}
             )
 
-    def create_map_widget(self):
+    async def handle_cookie_consent(self, request: Request) -> JSONResponse:
         """
-        Create the map widget for the Panel interface.
+        Handle cookie consent from the client.
+        Sets a consent cookie and updates the session.
+
+        Args:
+            request: The HTTP request containing consent information.
 
         Returns:
-            The Panel widget containing the map.
+            JSONResponse: A response indicating success or failure.
         """
-        return pn.pane.plot.Folium(
-            self._map,
-            sizing_mode="stretch_both"
-        )
+        try:
+            data = await request.json()
+            if data.get("consent"):
+                request.session["cookie_consent"] = True
+                request.session["authenticated"] = True
 
-    async def update_bbox(self, request: Request) -> JSONResponse:
+                response = JSONResponse(
+                    content={"status": "ok"},
+                    status_code=200
+                )
+
+                response.set_cookie(
+                    "cookie_consent",
+                    "true",
+                    max_age=60 * 60 * 24 * 365,  # 1 year
+                    httponly=True,
+                    samesite="lax" if self._config.app_dev_mode else "none",
+                    secure=not self._config.app_dev_mode,
+                    path="/"
+                )
+
+                return response
+
+            return JSONResponse(
+                content={"status": "error", "message": "Consent not given"},
+                status_code=400
+            )
+        except Exception as e:
+            logger.error(f"Error handling cookie consent: {e}")
+            return JSONResponse(
+                content={"status": "error", "message": str(e)},
+                status_code=500
+            )
+
+    async def update_config(self, request: Request) -> JSONResponse:
         """
         Update the map's bounding box.
 
@@ -288,7 +362,7 @@ class MapInterface:
         """
         try:
             data = await request.json()
-            bounds_data = data.get("bounds", data)  # Handle both nested and flat structures
+            bounds_data = data.get("bounds", data)
             self._config.map_bbox = BBox(
                 min_lat=bounds_data["south"],
                 max_lat=bounds_data["north"],

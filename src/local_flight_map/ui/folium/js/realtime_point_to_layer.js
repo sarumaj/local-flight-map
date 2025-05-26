@@ -59,25 +59,15 @@
   var icon = L.divIcon({
     className: 'rotated-icon',
     html: window.addIconShadow(`
-      <div style="position: relative; width: ${markerSize}px; height: ${markerSize}px; cursor: pointer;">
-        <img src="${selectedIcon.src}" 
+      <div class="aircraft-marker" style="width: ${markerSize}px; height: ${markerSize}px;">
+        <img class="aircraft-icon" src="${selectedIcon.src}" 
           data-initial-rotation="${selectedIcon.initial_rotation}"
           style="
             width:${markerSize}px;
             height:${markerSize}px;
             transform:rotate(${(feature.properties.track_angle || 0) - selectedIcon.initial_rotation}deg);
-            transform-origin: center center;
           ">
-        <div style="
-          position: absolute;
-          top: -16px;
-          left: -16px;
-          right: -16px;
-          bottom: -16px;
-          z-index: 1000;
-          cursor: pointer;
-        ">
-        </div>
+        <div class="clickable-overlay"></div>
         ${generateFlightInfoHtml(feature.properties, markerSize)}
       </div>
     `),
@@ -101,26 +91,18 @@
 
   // Create distance line
   var distanceLine = L.polyline([], {
-    color: 'rgba(0, 0, 0, 0.5)',
-    weight: 2,
-    opacity: 0.7,
+    color: 'rgba(255, 255, 255, 0.9)',
+    weight: 3,
+    opacity: 0.9,
     dashArray: '5, 10',
-    interactive: false
+    interactive: false,
+    className: 'distance-line'
   });
 
   // Create distance label
   var distanceLabel = L.divIcon({
     className: 'distance-label',
-    html: `<div style="
-      background: rgba(255, 255, 255, 0.9);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: nowrap;
-      border: 1px solid rgba(0, 0, 0, 0.2);
-      min-width: 120px;
-      text-align: center;
-    "><span class="distance-text"></span></div>`,
+    html: `<div><span class="distance-text"></span></div>`,
     iconSize: [150, 20],
     iconAnchor: [75, 10]
   });
@@ -146,22 +128,27 @@
     }
 
     try {
-      // Get config for radar position and update interval
-      const config = await window.getConfig();
-      if (!config) {
-        console.warn('Failed to get config for distance line');
-        return;
-      }
-      if (!config.bounds) {
-        console.warn('No bounds in config for distance line');
-        return;
+      // Get the current radar center from the draggable bbox
+      let radarPosition;
+      if (window.draggableBBox && window.draggableBBox.rectangle) {
+        const bounds = window.draggableBBox.rectangle.getBounds();
+        if (bounds) {
+          radarPosition = bounds.getCenter();
+        }
       }
 
-      // Calculate center from bounds
-      const radarPosition = L.latLng(
-        (config.bounds.north + config.bounds.south) / 2,
-        (config.bounds.east + config.bounds.west) / 2
-      );
+      // Fallback to config bounds if draggable bbox is not available
+      if (!radarPosition) {
+        const config = await window.getConfig();
+        if (!config || !config.bounds) {
+          console.warn('Failed to get radar position');
+          return;
+        }
+        radarPosition = L.latLng(
+          (config.bounds.north + config.bounds.south) / 2,
+          (config.bounds.east + config.bounds.west) / 2
+        );
+      }
 
       // Calculate distance in meters
       const distanceM = markerLatLng.distanceTo(radarPosition);
@@ -175,24 +162,24 @@
         }
 
         // Update label
-        const labelHtml = `${(Math.round(distanceM)/1000).toFixed(1)}km (${distanceNm.toFixed(1)} NM)`;
-        
+        const labelHtml = `${(Math.round(distanceM) / 1000).toFixed(1)}km (${distanceNm.toFixed(1)} NM)`;
+
         // Update popup distance info if open
         if (popup.isOpen()) {
           const popupElement = popup.getElement();
           if (popupElement) {
             const distanceInfo = popupElement.querySelector('.distance-info');
             if (distanceInfo) {
-              distanceInfo.textContent = `${(Math.round(distanceM)/1000).toFixed(1)} km (${distanceNm.toFixed(1)} NM)`;
+              distanceInfo.textContent = `${(Math.round(distanceM) / 1000).toFixed(1)} km (${distanceNm.toFixed(1)} NM)`;
             }
           }
         }
-        
+
         // Ensure marker is added to map before trying to access its element
         if (!map.hasLayer(distanceMarker)) {
           distanceMarker.addTo(map);
         }
-        
+
         const labelElement = distanceMarker.getElement();
         if (!labelElement) {
           console.warn('Failed to get label element for distance marker - recreating marker');
@@ -202,7 +189,7 @@
             interactive: false
           }).addTo(map);
         }
-        
+
         const textSpan = labelElement?.querySelector('.distance-text');
         if (!textSpan) {
           console.warn('Failed to find distance text span in label element');
@@ -220,11 +207,12 @@
         if (!(distanceLine instanceof L.Polyline)) {
           console.warn('Recreating broken distance line');
           distanceLine = L.polyline([], {
-            color: 'rgba(0, 0, 0, 0.5)',
-            weight: 2,
-            opacity: 0.7,
+            color: 'rgba(255, 255, 255, 0.9)',
+            weight: 3,
+            opacity: 0.9,
             dashArray: '5, 10',
-            interactive: false
+            interactive: false,
+            className: 'distance-line'
           });
           distanceLine.setLatLngs([radarPosition, markerLatLng]);
           distanceLine.addTo(map);
@@ -232,7 +220,8 @@
       }
 
       // Update the distance line periodically
-      if (config.interval) {
+      const config = await window.getConfig();
+      if (config && config.interval) {
         setTimeout(() => {
           if (popup.isOpen()) {
             updateDistanceLine(marker.getLatLng(), map);
@@ -252,60 +241,45 @@
   function createPopupContent(props) {
     const tags = (props["tags"] || []).filter(tag => tag.trim());
     var content = `
-      <div class="aircraft-info" style="max-height: 300px; overflow-y: auto;">
-        <h3 style="
-          margin: 0 0 10px 0;
-          padding: 5px;
-          background: #f8f9fa;
-          position: sticky;
-          top: 0;
-        ">Aircraft Information</h3>
-        <div style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 5px;">
+      <div class="aircraft-info">
+        <h3>Aircraft Information</h3>
+        <div class="tag-container">
           ${tags.map(tag => {
       const [key, value] = tag.split(':');
       return `
-              <span style="
-                display: inline-block;
-                padding: 4px 8px;
-                background: #e9ecef;
-                border-radius: 16px;
-                font-size: 12px;
-                color: #495057;
-                border: 1px solid #dee2e6;
-                white-space: nowrap;
-              ">
-                <span style="color: #6c757d; font-weight: 500;">${key}</span>
-                <span style="color: #495057; margin-left: 4px;">${value}</span>
+              <span class="tag">
+                <span class="tag-key">${key}</span>
+                <span class="tag-value">${value}</span>
               </span>
             `;
     }).join('')}
         </div>
-        <div style="margin-bottom: 8px; font-weight: 500;">Position & Distance</div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+        <div class="section-title">Position & Distance</div>
+        <table>
           <tbody>
-            <tr style="border-bottom: 1px solid #eee;">
-              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Latitude</th>
-              <td style="padding: 5px;">${props.latitude?.toFixed(6) || 'N/A'}</td>
+            <tr>
+              <th>Latitude</th>
+              <td>${props.latitude?.toFixed(6) || 'N/A'}</td>
             </tr>
-            <tr style="border-bottom: 1px solid #eee;">
-              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Longitude</th>
-              <td style="padding: 5px;">${props.longitude?.toFixed(6) || 'N/A'}</td>
+            <tr>
+              <th>Longitude</th>
+              <td>${props.longitude?.toFixed(6) || 'N/A'}</td>
             </tr>
-            <tr style="border-bottom: 1px solid #eee;">
-              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Distance</th>
-              <td style="padding: 5px;" class="distance-info"></td>
+            <tr>
+              <th>Distance</th>
+              <td class="distance-info"></td>
             </tr>
           </tbody>
         </table>
-        <div style="margin-bottom: 8px; font-weight: 500;">Properties</div>
-        <table style="width: 100%; border-collapse: collapse;">
+        <div class="section-title">Properties</div>
+        <table>
           <tbody>`;
     for (var key in props) {
       if (key === "tags") continue;
       content += `
-        <tr style="border-bottom: 1px solid #eee;">
-          <th style="text-align: left; padding: 5px; background: #f8f9fa;">${key}</th>
-          <td style="padding: 5px;">${props[key]}</td>
+        <tr>
+          <th>${key}</th>
+          <td>${props[key]}</td>
         </tr>`;
     }
     content += `
@@ -355,7 +329,7 @@
   marker.bindPopup(popup);
 
   // Add popup open/close handlers
-  popup.on('add', async function() {
+  popup.on('add', async function () {
     // Get the map from the popup's target (marker)
     const map = popup._source._map;
     if (!map) {
@@ -365,7 +339,7 @@
     await updateDistanceLine(marker.getLatLng(), map);
   });
 
-  popup.on('remove', function() {
+  popup.on('remove', function () {
     try {
       const map = popup._source._map;
       if (!map) {
@@ -393,15 +367,7 @@
 
   // Add click handler to the clickable div
   icon.options.html = icon.options.html.replace('</div>',
-    `<div style="
-      position: absolute;
-      top: -16px;
-      left: -16px;
-      right: -16px;
-      bottom: -16px;
-      z-index: 1000;
-      cursor: pointer;
-    " onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`
+    `<div class="clickable-overlay" onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`
   );
 
   return marker;
