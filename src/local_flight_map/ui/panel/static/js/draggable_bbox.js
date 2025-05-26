@@ -26,6 +26,7 @@ class DraggableBBox {
     this.animationInterval = null;
     this.animationStartTime = null;
     this.rotationSpeed = 60; // degrees per second
+    this.config = null; // Will store the config from /ui/config
 
     // Bind event handlers
     this.boundEvents = {
@@ -72,15 +73,19 @@ class DraggableBBox {
     // Create the radar icon
     this.radarIcon = L.divIcon({
       className: 'radar-icon',
-      html: `<img src="/ui/static/icons/radar.png" style="width: 32px; height: 32px;">`,
+      html: `<img src="/ui/static/icons/radar.png" style="width: 32px; height: 32px; cursor: pointer;">`,
       iconSize: [32, 32],
       iconAnchor: [16, 16]
     });
 
     this.radarMarker = L.marker(center, {
       icon: this.radarIcon,
-      interactive: false,
-      pane: 'shadowPane' // Use shadowPane for background elements
+      interactive: true,
+      riseOnHover: true,
+      autoPanOnFocus: false, // Disable auto-pan to prevent unwanted movement
+      keyboard: true,
+      title: 'Radar Information',
+      pane: 'shadowPane'
     }).addTo(this.map);
 
     // Create the beam line
@@ -89,9 +94,33 @@ class DraggableBBox {
       weight: 2,
       opacity: 0.7,
       className: 'radar-beam-line',
-      interactive: false, // Make the line non-interactive
-      pane: 'shadowPane' // Use shadowPane for background elements
+      interactive: false,
+      pane: 'shadowPane'
     }).addTo(this.map);
+
+    // Create popup for radar information
+    this.radarPopup = L.popup({
+      maxWidth: 300,
+      closeButton: true,
+      autoClose: true,
+      closeOnEscapeKey: true,
+      closeOnClick: true
+    });
+
+    // Bind popup to radar marker
+    this.radarMarker.bindPopup(this.radarPopup);
+    this.updateRadarPopupContent();
+
+    // Add click handler to the radar marker with proper event handling
+    this.radarMarker.on('click', (e) => {
+      // Only handle click if we're not currently dragging
+      if (!this.isDragging) {
+        e.originalEvent.stopPropagation();
+        if (!this.radarPopup.isOpen()) {
+          this.radarPopup.openOn(this.radarMarker);
+        }
+      }
+    });
 
     // Ensure the rectangle stays on top and is interactive
     this.rectangle.bringToFront();
@@ -102,6 +131,113 @@ class DraggableBBox {
     }
 
     this.startRadarAnimation();
+  }
+
+  /**
+   * Create popup content for radar information
+   * @returns {string} HTML content for the popup
+   */
+  createRadarPopupContent() {
+    const center = this.rectangle.getBounds().getCenter();
+    const bounds = this.rectangle.getBounds();
+    
+    // Calculate radius in kilometers and nautical miles
+    const radiusKm = this.calculateRadius(bounds);
+    const radiusNm = radiusKm * 0.539957; // Convert km to nautical miles
+
+    // Count markers in the marker pane including clustered markers
+    let markerCount = 0;
+    try {
+      const markerPane = document.querySelector('.leaflet-marker-pane');
+      if (markerPane) {
+        // Count individual markers
+        const individualMarkers = Array.from(markerPane.children)
+          .filter(child => child.classList.contains('leaflet-marker-icon'))
+          .length;
+        
+        // Count markers in clusters
+        const clusterMarkers = Array.from(markerPane.children)
+          .filter(child => child.classList.contains('custom-cluster'))
+          .reduce((total, cluster) => {
+            // Extract count from the cluster's div content
+            const countDiv = cluster.querySelector('div > div');
+            if (countDiv) {
+              const count = parseInt(countDiv.textContent, 10);
+              return total + (isNaN(count) ? 0 : count);
+            }
+            return total;
+          }, 0);
+
+        markerCount = individualMarkers + clusterMarkers;
+      }
+    } catch (error) {
+      console.error('Error counting markers:', error);
+    }
+    
+    return `
+      <div class="radar-info" style="max-height: 300px; overflow-y: auto;">
+        <h3 style="
+          margin: 0 0 10px 0;
+          padding: 5px;
+          background: #f8f9fa;
+          position: sticky;
+          top: 0;
+        ">Radar Information</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Center Point</th>
+              <td style="padding: 5px;">${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Radius</th>
+              <td style="padding: 5px;">${radiusKm.toFixed(1)} km (${radiusNm.toFixed(1)} NM)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Markers in Area</th>
+              <td style="padding: 5px;">${markerCount} markers</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Update Interval</th>
+              <td style="padding: 5px;">${this.config?.interval || 200} ms</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Rotation Speed</th>
+              <td style="padding: 5px;">${this.rotationSpeed}°/s</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  /**
+   * Calculate the radius of the radar coverage in kilometers
+   * @param {L.LatLngBounds} bounds - The bounding box
+   * @returns {number} The radius in kilometers
+   */
+  calculateRadius(bounds) {
+    const center = bounds.getCenter();
+    
+    // Calculate horizontal radius (east-west)
+    const eastPoint = L.latLng(center.lat, bounds.getEast());
+    const horizontalRadius = center.distanceTo(eastPoint) / 1000; // Convert meters to kilometers
+    
+    // Calculate vertical radius (north-south)
+    const northPoint = L.latLng(bounds.getNorth(), center.lng);
+    const verticalRadius = center.distanceTo(northPoint) / 1000; // Convert meters to kilometers
+    
+    // Return the maximum radius
+    return Math.max(horizontalRadius, verticalRadius);
+  }
+
+  /**
+   * Update the radar popup content
+   */
+  updateRadarPopupContent() {
+    if (this.radarPopup) {
+      this.radarPopup.setContent(this.createRadarPopupContent());
+    }
   }
 
   /**
@@ -176,6 +312,11 @@ class DraggableBBox {
     // Update both the beam line and radar icon position
     this.beamLine.setLatLngs([center, endPoint]);
     this.radarMarker.setLatLng(center);
+    
+    // Update popup content if it's open
+    if (this.radarPopup && this.radarPopup.isOpen()) {
+      this.updateRadarPopupContent();
+    }
   }
 
   /**
@@ -281,6 +422,10 @@ class DraggableBBox {
   onMouseDown(e) {
     if (e.originalEvent.target !== this.rectangle.getElement()) return;
 
+    // Prevent event propagation to avoid triggering radar marker events
+    e.originalEvent.stopPropagation();
+    e.originalEvent.preventDefault();
+
     this.isDragging = true;
     this.startPoint = e.latlng;
     this.offset = {
@@ -297,6 +442,10 @@ class DraggableBBox {
    */
   onMouseMove(e) {
     if (!this.isDragging) return;
+
+    // Prevent event propagation during dragging
+    e.originalEvent.stopPropagation();
+    e.originalEvent.preventDefault();
 
     const newCenter = e.latlng;
     const bounds = this.rectangle.getBounds();
@@ -317,8 +466,12 @@ class DraggableBBox {
   /**
    * Handle mouse up event
    */
-  onMouseUp() {
+  onMouseUp(e) {
     if (!this.isDragging) return;
+
+    // Prevent event propagation when ending drag
+    e.originalEvent.stopPropagation();
+    e.originalEvent.preventDefault();
 
     this.isDragging = false;
     this.map.dragging.enable();
@@ -368,6 +521,7 @@ window.addEventListener('mapReady', async (e) => {
     );
 
     window.draggableBBox = new DraggableBBox(map, initialBounds);
+    window.draggableBBox.config = config; // Store the config
     await window.draggableBBox.reset();
   } catch (error) {
     console.error('Failed to initialize draggable bounding box:', error);
