@@ -102,15 +102,13 @@ class MapLayers:
         self._layers.cluster_group = MarkerCluster(
             name="Local Flights",
             control=False,
-            overlay=False,
             showCoverageOnHover=False,
             spiderfyDistanceMultiplier=1.5,
-            removeOutsideVisibleBounds=True,
+            removeOutsideVisibleBounds=False,
             chunkedLoading=True,
         )
         self._layers.realtime = Realtime(
             control=False,
-            overlay=False,
             container=self._layers.cluster_group,
             interval=self._config.map_refresh_interval,
             remove_missing=True,

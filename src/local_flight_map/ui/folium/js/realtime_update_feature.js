@@ -11,8 +11,8 @@
  * @returns {L.Layer|null} The updated layer or null if no update was performed
  */
 (feature, oldLayer) => {
-
   if (!oldLayer) {
+    // nothing to update
     return;
   }
 
@@ -26,13 +26,29 @@
   var type = feature.geometry && feature.geometry.type;
   var coordinates = feature.geometry && feature.geometry.coordinates;
 
+  if (!type || !coordinates) {
+    console.warn('Invalid feature geometry:', feature.geometry);
+    return oldLayer;
+  }
+
   switch (type) {
     case 'Point':
       var newLatLng = L.GeoJSON.coordsToLatLng(coordinates);
       var currentLatLng = oldLayer.getLatLng();
 
+      if (!newLatLng) {
+        console.warn('Failed to convert coordinates to LatLng:', coordinates);
+        return oldLayer;
+      }
+
       // Get config using global cache
       window.getConfig().then(config => {
+        if (!config || !config.interval) {
+          console.warn('Invalid config for animation:', config);
+          oldLayer.setLatLng(newLatLng);
+          return;
+        }
+
         if (currentLatLng) {
           // Custom smooth animation
           var duration = config.interval / 1000; // Convert ms to seconds
@@ -92,15 +108,36 @@
         } else {
           oldLayer.setLatLng(newLatLng);
         }
+      }).catch(error => {
+        console.error('Error during animation:', error);
+        oldLayer.setLatLng(newLatLng);
       });
 
       // Update icon rotation if needed
       if (feature.properties.track_angle) {
         var icon = oldLayer.getIcon();
-        var imgElement = icon.options.html.match(/<img[^>]+>/)[0];
-        var initialRotation = parseInt(imgElement.match(/data-initial-rotation="(\d+)"/)[1]);
+        if (!icon || !icon.options || !icon.options.html) {
+          console.warn('Invalid icon configuration for rotation update');
+          return oldLayer;
+        }
+
+        var imgElement = icon.options.html.match(/<img[^>]+>/);
+        if (!imgElement) {
+          console.warn('No image element found in icon HTML');
+          return oldLayer;
+        }
+
+        var initialRotation = parseInt(imgElement[0].match(/data-initial-rotation="(\d+)"/)[1]);
+        if (isNaN(initialRotation)) {
+          console.warn('Invalid initial rotation value:', initialRotation);
+          return oldLayer;
+        }
 
         const markerSize = calculateMarkerSize(feature.properties);
+        if (!markerSize) {
+          console.warn('Invalid marker size calculated for rotation update');
+          return oldLayer;
+        }
 
         // Update both rotation and flight info in one go
         let updatedHtml = window.addIconShadow(icon.options.html
@@ -129,6 +166,7 @@
       oldLayer.setLatLngs(L.GeoJSON.coordsToLatLngs(coordinates, type === 'Polygon' ? 1 : 2));
       break;
     default:
+      console.warn('Unsupported geometry type:', type);
       return null;
   }
 

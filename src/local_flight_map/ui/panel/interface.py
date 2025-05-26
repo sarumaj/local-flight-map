@@ -169,14 +169,18 @@ class MapInterface:
         Includes both external scripts and inline initialization code.
         """
         # Add static scripts
-        for script in Path(str(Path(__file__).parent / "static" / "js")).glob("*.js"):
+        static_scripts = list((Path(__file__).parent / "static" / "js").glob("*.js"))
+        if len(static_scripts) == 0:
+            raise FileNotFoundError("No static scripts found")
+
+        for script in static_scripts:
             self._map.get_root().html.add_child(folium.Element(
-                f'<script defer src="/ui/static/js/{script.name}"></script>'
+                    f'<script src="/ui/static/js/{script.name}"></script>'
             ))
 
         # Add inline map initialization script
         self._map.get_root().html.add_child(folium.Element(
-            f'<script defer>{Path(__file__).with_suffix(".js").read_text()}</script>'
+            f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
         ))
 
     async def __aenter__(self):

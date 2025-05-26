@@ -13,10 +13,14 @@
 (feature, latlng) => {
   // Only create markers for point features
   if (feature.geometry.type !== 'Point') {
+    console.warn('Skipping non-point feature:', feature.geometry.type);
     return null;
   }
 
   const markerSize = calculateMarkerSize(feature.properties);
+  if (!markerSize) {
+    console.warn('Invalid marker size calculated for feature:', feature.properties);
+  }
 
   /**
    * Available aircraft icons with their properties
@@ -95,6 +99,151 @@
   });
   marker.tags = (feature.properties.tags || []).filter(tag => tag.trim());
 
+  // Create distance line
+  var distanceLine = L.polyline([], {
+    color: 'rgba(0, 0, 0, 0.5)',
+    weight: 2,
+    opacity: 0.7,
+    dashArray: '5, 10',
+    interactive: false
+  });
+
+  // Create distance label
+  var distanceLabel = L.divIcon({
+    className: 'distance-label',
+    html: `<div style="
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      min-width: 120px;
+      text-align: center;
+    "><span class="distance-text"></span></div>`,
+    iconSize: [150, 20],
+    iconAnchor: [75, 10]
+  });
+
+  var distanceMarker = L.marker([0, 0], {
+    icon: distanceLabel,
+    interactive: false
+  });
+
+  /**
+   * Update distance line and label
+   * @param {L.LatLng} markerLatLng - The marker's position
+   * @param {L.Map} map - The map instance
+   */
+  async function updateDistanceLine(markerLatLng, map) {
+    if (!markerLatLng) {
+      console.warn('No marker position provided for distance line');
+      return;
+    }
+    if (!map) {
+      console.warn('No map instance provided for distance line');
+      return;
+    }
+
+    try {
+      // Get config for radar position and update interval
+      const config = await window.getConfig();
+      if (!config) {
+        console.warn('Failed to get config for distance line');
+        return;
+      }
+      if (!config.bounds) {
+        console.warn('No bounds in config for distance line');
+        return;
+      }
+
+      // Calculate center from bounds
+      const radarPosition = L.latLng(
+        (config.bounds.north + config.bounds.south) / 2,
+        (config.bounds.east + config.bounds.west) / 2
+      );
+
+      // Calculate distance in meters
+      const distanceM = markerLatLng.distanceTo(radarPosition);
+      const distanceNm = distanceM * 0.000539957; // Convert meters to nautical miles
+
+      try {
+        // Update line
+        distanceLine.setLatLngs([radarPosition, markerLatLng]);
+        if (!map.hasLayer(distanceLine)) {
+          distanceLine.addTo(map);
+        }
+
+        // Update label
+        const labelHtml = `${(Math.round(distanceM)/1000).toFixed(1)}km (${distanceNm.toFixed(1)} NM)`;
+        
+        // Update popup distance info if open
+        if (popup.isOpen()) {
+          const popupElement = popup.getElement();
+          if (popupElement) {
+            const distanceInfo = popupElement.querySelector('.distance-info');
+            if (distanceInfo) {
+              distanceInfo.textContent = `${(Math.round(distanceM)/1000).toFixed(1)} km (${distanceNm.toFixed(1)} NM)`;
+            }
+          }
+        }
+        
+        // Ensure marker is added to map before trying to access its element
+        if (!map.hasLayer(distanceMarker)) {
+          distanceMarker.addTo(map);
+        }
+        
+        const labelElement = distanceMarker.getElement();
+        if (!labelElement) {
+          console.warn('Failed to get label element for distance marker - recreating marker');
+          // Recreate the marker if element is not available
+          distanceMarker = L.marker([0, 0], {
+            icon: distanceLabel,
+            interactive: false
+          }).addTo(map);
+        }
+        
+        const textSpan = labelElement?.querySelector('.distance-text');
+        if (!textSpan) {
+          console.warn('Failed to find distance text span in label element');
+          return;
+        }
+        textSpan.textContent = labelHtml;
+
+        // Position label at midpoint
+        const midLat = (radarPosition.lat + markerLatLng.lat) / 2;
+        const midLng = (radarPosition.lng + markerLatLng.lng) / 2;
+        distanceMarker.setLatLng([midLat, midLng]);
+      } catch (layerError) {
+        console.error('Error updating distance layers:', layerError);
+        // Try to recreate the line if it's broken
+        if (!(distanceLine instanceof L.Polyline)) {
+          console.warn('Recreating broken distance line');
+          distanceLine = L.polyline([], {
+            color: 'rgba(0, 0, 0, 0.5)',
+            weight: 2,
+            opacity: 0.7,
+            dashArray: '5, 10',
+            interactive: false
+          });
+          distanceLine.setLatLngs([radarPosition, markerLatLng]);
+          distanceLine.addTo(map);
+        }
+      }
+
+      // Update the distance line periodically
+      if (config.interval) {
+        setTimeout(() => {
+          if (popup.isOpen()) {
+            updateDistanceLine(marker.getLatLng(), map);
+          }
+        }, config.interval);
+      }
+    } catch (error) {
+      console.error('Error updating distance line:', error);
+    }
+  }
+
   /**
    * Create popup content for the marker
    * @param {Object} props - Aircraft properties
@@ -131,6 +280,24 @@
             `;
     }).join('')}
         </div>
+        <div style="margin-bottom: 8px; font-weight: 500;">Position & Distance</div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Latitude</th>
+              <td style="padding: 5px;">${props.latitude?.toFixed(6) || 'N/A'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Longitude</th>
+              <td style="padding: 5px;">${props.longitude?.toFixed(6) || 'N/A'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <th style="text-align: left; padding: 5px; background: #f8f9fa;">Distance</th>
+              <td style="padding: 5px;" class="distance-info"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-bottom: 8px; font-weight: 500;">Properties</div>
         <table style="width: 100%; border-collapse: collapse;">
           <tbody>`;
     for (var key in props) {
@@ -186,6 +353,35 @@
   // Initial popup content
   marker._updatePopupContent(feature.properties);
   marker.bindPopup(popup);
+
+  // Add popup open/close handlers
+  popup.on('add', async function() {
+    // Get the map from the popup's target (marker)
+    const map = popup._source._map;
+    if (!map) {
+      console.warn('No map instance found for popup source');
+      return;
+    }
+    await updateDistanceLine(marker.getLatLng(), map);
+  });
+
+  popup.on('remove', function() {
+    try {
+      const map = popup._source._map;
+      if (!map) {
+        console.warn('No map instance found for popup source');
+        return;
+      }
+      if (distanceLine && map.hasLayer(distanceLine)) {
+        distanceLine.remove();
+      }
+      if (distanceMarker && map.hasLayer(distanceMarker)) {
+        distanceMarker.remove();
+      }
+    } catch (error) {
+      console.error('Error removing distance layers:', error);
+    }
+  });
 
   // Add click handler to both the marker and the clickable div
   marker.on('click', function (e) {

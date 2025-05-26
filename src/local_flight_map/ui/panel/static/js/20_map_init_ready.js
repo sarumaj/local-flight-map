@@ -5,14 +5,25 @@
  */
 window.addEventListener('mapElementReady', (e) => {
   const mapId = e.detail.mapId;
+  if (!mapId) {
+    console.error('No map ID provided in mapElementReady event');
+    return;
+  }
+
   let checkInterval;
+  let timeoutId;
 
   /**
-   * Cleanup function to clear the interval
+   * Cleanup function to clear the interval and timeout
    */
   const cleanup = () => {
     if (checkInterval) {
       clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
     }
   };
 
@@ -31,5 +42,8 @@ window.addEventListener('mapElementReady', (e) => {
   }, 100);
 
   // Clear interval after 30 seconds if map is not found
-  setTimeout(cleanup, 30000);
+  timeoutId = setTimeout(() => {
+    console.warn('Map initialization timed out after 30 seconds');
+    cleanup();
+  }, 30000);
 });
