@@ -7,7 +7,7 @@ import folium
 from folium.plugins import MousePosition, MiniMap, Fullscreen
 from dataclasses import dataclass
 
-from ..folium import Realtime, MarkerCluster
+from ..plugins import Realtime, MarkerCluster
 from .config import MapConfig
 
 

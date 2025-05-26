@@ -4,21 +4,18 @@ Provides the main interface for displaying and interacting with the flight map.
 """
 
 import folium
-import panel as pn
 import uvicorn
-from panel.io.fastapi import add_applications
-import fastapi
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.requests import Request
-from typing import Union, Dict, Any
 import re
 import signal
 from types import FrameType
+from typing import Union, Dict, Any
 
 from ...api import ApiClient
 from .config import MapConfig
@@ -81,7 +78,7 @@ class MapInterface:
         Setup FastAPI application and middleware.
         Configures CORS, session handling, authentication, and routes.
         """
-        self._app = fastapi.FastAPI()
+        self._app = FastAPI()
 
         # Add CORS middleware
         self._app.add_middleware(
@@ -135,11 +132,9 @@ class MapInterface:
         self._app.add_api_route("/service/health", self.health, methods=["GET"])
         self._app.add_api_route("/service/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
 
-        # Add Panel applications
-        add_applications({
-            "/": self.create_map_widget,
-            "/map": self.create_map_widget,  # legacy endpoint
-        }, app=self._app, title="Local Flight Map")
+        # Add main map route
+        self._app.add_api_route("/", self.get_map, methods=["GET"])
+        self._app.add_api_route("/map", self.get_map, methods=["GET"])
 
     def _initialize_map(self):
         """
@@ -194,6 +189,21 @@ class MapInterface:
             f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
         ))
 
+    async def get_map(self, request: Request) -> HTMLResponse:
+        """
+        Get the map HTML page.
+
+        Args:
+            request: The HTTP request.
+
+        Returns:
+            HTMLResponse: The map HTML page.
+        """
+        return HTMLResponse(
+            content=self._map.get_root().render(),
+            status_code=200
+        )
+
     async def __aenter__(self):
         """
         Enter the async context manager.
@@ -232,18 +242,6 @@ class MapInterface:
                 "cookie_consent": request.session.get("cookie_consent", False)
             },
             status_code=200
-        )
-
-    def create_map_widget(self):
-        """
-        Create the map widget for the Panel interface.
-
-        Returns:
-            The Panel widget containing the map.
-        """
-        return pn.pane.plot.Folium(
-            self._map,
-            sizing_mode="stretch_both"
         )
 
     async def health(self) -> JSONResponse:

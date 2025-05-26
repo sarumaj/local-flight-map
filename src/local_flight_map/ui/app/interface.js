@@ -15,6 +15,30 @@
         detail: { mapId: mapElement.id }
       }));
     }
+
+    // Add social media links
+    const socialLinks = document.createElement('div');
+    socialLinks.className = 'social-links';
+
+    // GitHub link
+    const githubLink = document.createElement('a');
+    githubLink.href = 'https://github.com/sarumaj';
+    githubLink.className = 'social-link';
+    githubLink.target = '_blank';
+    githubLink.rel = 'noopener noreferrer';
+    githubLink.innerHTML = '<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">';
+    socialLinks.appendChild(githubLink);
+
+    // LinkedIn link
+    const linkedinLink = document.createElement('a');
+    linkedinLink.href = 'https://www.linkedin.com/in/dawid-ciepiela/';
+    linkedinLink.className = 'social-link';
+    linkedinLink.target = '_blank';
+    linkedinLink.rel = 'noopener noreferrer';
+    linkedinLink.innerHTML = '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" alt="LinkedIn">';
+    socialLinks.appendChild(linkedinLink);
+
+    document.body.appendChild(socialLinks);
   });
 
   /**
@@ -65,7 +89,8 @@
       title.textContent = 'Cookie Consent Required';
 
       const message = document.createElement('p');
-      message.textContent = 'This flight map application requires cookies to function properly. Without cookies, the application cannot maintain your session and provide the necessary functionality.';
+      message.textContent = 'This flight map application requires cookies to function properly. ' +
+        'Without cookies, the application cannot maintain your session and provide the necessary functionality.';
 
       const buttonContainer = document.createElement('div');
       buttonContainer.className = 'button-container';

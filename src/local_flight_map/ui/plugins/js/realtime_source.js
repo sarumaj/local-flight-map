@@ -6,38 +6,50 @@
  * @returns {void}
  */
 (responseHandler, errorHandler) => {
-  // Create loading overlay and spinner elements
-  const overlay = document.createElement('div');
-  overlay.className = 'loading-overlay';
+  // Create loading overlay and spinner elements only once
+  let overlay = document.querySelector('.loading-overlay');
+  let spinner = document.querySelector('.loading-spinner');
 
-  const spinner = document.createElement('div');
-  spinner.className = 'loading-spinner';
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    document.body.appendChild(overlay);
+  }
 
-  // Add spinner animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes spin {
-      0% { transform: translate(-50%, -50%) rotate(0deg); }
-      100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-  `;
-  document.head.appendChild(style);
-  document.body.appendChild(overlay);
-  document.body.appendChild(spinner);
+  if (!spinner) {
+    spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    document.body.appendChild(spinner);
+  }
+
+  // Add spinner animation if not already added
+  if (!document.querySelector('#spinner-animation')) {
+    const style = document.createElement('style');
+    style.id = 'spinner-animation';
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
   let spinnerTimeout = null;
   let fetchStartTime = null;
+  let isSpinnerVisible = false;
 
   /**
    * Show the loading spinner
    */
   function showSpinner() {
-    // Don't show spinner if cookie consent modal is visible
-    if (document.getElementById('cookie-consent-modal')) {
+    // Don't show spinner if cookie consent modal is visible or if already visible
+    if (document.getElementById('cookie-consent-modal') || isSpinnerVisible) {
       return;
     }
     overlay.style.display = 'block';
     spinner.style.display = 'block';
+    isSpinnerVisible = true;
   }
 
   /**
@@ -50,6 +62,7 @@
     }
     overlay.style.display = 'none';
     spinner.style.display = 'none';
+    isSpinnerVisible = false;
     fetchStartTime = null;
   }
 

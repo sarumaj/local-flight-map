@@ -5,7 +5,7 @@
   --color-text-light: #6c757d;
   --color-background: #f8f9fa;
   --color-border: #dee2e6;
-  --color-overlay: rgba(255, 255, 255, 0.3);
+  --color-overlay: rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
   --border-radius-sm: 3px;
   --border-radius-md: 4px;

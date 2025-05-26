@@ -62,11 +62,16 @@ class DraggableBBox {
 
       path.setAttribute('pointer-events', 'all');
       path.style.cursor = 'move';
+      path.style.touchAction = 'none'; // Prevent default touch actions
 
-      // Add both mouse and touch event listeners
-      this.rectangle.on('mousedown touchstart', this.boundEvents.start);
-      this.map.on('mousemove touchmove', this.boundEvents.move);
-      this.map.on('mouseup touchend', this.boundEvents.end);
+      // Separate mouse and touch event listeners for better control
+      this.rectangle.on('mousedown', this.boundEvents.start);
+      this.rectangle.on('touchstart', this.boundEvents.start, { passive: false });
+      this.map.on('mousemove', this.boundEvents.move);
+      this.map.on('touchmove', this.boundEvents.move, { passive: false });
+      this.map.on('mouseup', this.boundEvents.end);
+      this.map.on('touchend', this.boundEvents.end);
+      this.map.on('touchcancel', this.boundEvents.end);
 
       this.initializeRadarBeam();
     } catch (error) {
@@ -112,7 +117,6 @@ class DraggableBBox {
         interactive: false,
         pane: 'shadowPane'
       }).addTo(this.map);
-
 
       // Create popup for radar information
       this.radarPopup = L.popup({
@@ -364,7 +368,19 @@ class DraggableBBox {
       const angleRad = this.getCurrentAngle();
       const endPoint = this.calculateIntersectionPoint(center, angleRad, bounds);
 
-      // Update both the beam line and radar icon position
+      // Calculate distance for beam width adjustment
+      const distance = center.distanceTo(endPoint);
+      const maxWidth = 10; // Maximum beam width in pixels
+      const minWidth = 3;  // Minimum beam width in pixels
+      const widthFactor = Math.min(distance / 10000, 1); // Scale factor based on distance
+      const beamWidth = minWidth + (maxWidth - minWidth) * widthFactor;
+
+      // Update beam line with new width
+      const path = this.beamLine.getElement();
+      if (path) {
+        path.style.height = `${beamWidth}px`;
+      }
+
       this.beamLine.setLatLngs([center, endPoint]);
       this.radarMarker.setLatLng(center);
 
@@ -427,9 +443,13 @@ class DraggableBBox {
   destroy() {
     try {
       if (this.rectangle) {
-        this.rectangle.off('mousedown touchstart', this.boundEvents.start);
-        this.map.off('mousemove touchmove', this.boundEvents.move);
-        this.map.off('mouseup touchend', this.boundEvents.end);
+        this.rectangle.off('mousedown', this.boundEvents.start);
+        this.rectangle.off('touchstart', this.boundEvents.start);
+        this.map.off('mousemove', this.boundEvents.move);
+        this.map.off('touchmove', this.boundEvents.move);
+        this.map.off('mouseup', this.boundEvents.end);
+        this.map.off('touchend', this.boundEvents.end);
+        this.map.off('touchcancel', this.boundEvents.end);
         this.rectangle.remove();
         this.map.setMaxBounds(null);
         this.map.setView([0, 0], 2);
@@ -528,14 +548,18 @@ class DraggableBBox {
    * @param {L.LeafletMouseEvent|L.LeafletTouchEvent} e - The event
    */
   onDragStart(e) {
-    if (!e.originalEvent || e.originalEvent.target !== this.rectangle.getElement()) {
+    // Get the correct event target for both mouse and touch events
+    const target = e.originalEvent?.target || e.target;
+    if (target !== this.rectangle.getElement()) {
       return;
     }
 
     try {
       // Prevent event propagation to avoid triggering radar marker events
-      e.originalEvent.stopPropagation();
-      e.originalEvent.preventDefault();
+      if (e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+      }
 
       this.isDragging = true;
       this.startPoint = e.latlng;
@@ -544,7 +568,11 @@ class DraggableBBox {
         lng: e.latlng.lng - this.rectangle.getBounds().getCenter().lng
       };
 
+      // Disable map dragging and zooming during drag
       this.map.dragging.disable();
+      this.map.touchZoom.disable();
+      this.map.doubleClickZoom.disable();
+      this.map.scrollWheelZoom.disable();
     } catch (error) {
       console.error('Error in drag start handler:', error);
       this.isDragging = false;
@@ -563,8 +591,10 @@ class DraggableBBox {
 
     try {
       // Prevent event propagation during dragging
-      e.originalEvent.stopPropagation();
-      e.originalEvent.preventDefault();
+      if (e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+      }
 
       const newCenter = e.latlng;
       const bounds = this.rectangle.getBounds();
@@ -609,11 +639,18 @@ class DraggableBBox {
 
     try {
       // Prevent event propagation when ending drag
-      e.originalEvent.stopPropagation();
-      e.originalEvent.preventDefault();
+      if (e.originalEvent) {
+        e.originalEvent.stopPropagation();
+        e.originalEvent.preventDefault();
+      }
 
       this.isDragging = false;
+
+      // Re-enable map interactions
       this.map.dragging.enable();
+      this.map.touchZoom.enable();
+      this.map.doubleClickZoom.enable();
+      this.map.scrollWheelZoom.enable();
 
       const newBounds = this.rectangle.getBounds();
       this.map.setMaxBounds(newBounds);

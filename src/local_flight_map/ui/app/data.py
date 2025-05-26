@@ -160,7 +160,10 @@ class DataSource:
 
         aircrafts: Union[AdsbExchangeResponse, States, None] = await method(*args)
         if aircrafts is None:
-            logger.error(f"No aircrafts found for {self._config.map_center} and {self._config.map_radius} ({self._config.map_bbox})")
+            logger.error(
+                f"No aircrafts found for {self._config.map_center} and {self._config.map_radius} "
+                f"({self._config.map_bbox})"
+            )
             return None
 
         feature_collection: Dict[str, Any] = aircrafts.to_geojson()
@@ -172,7 +175,10 @@ class DataSource:
             ])
         ]
         feature_collection["features"] = sorted(
-            feature_collection["features"], 
-            key=lambda x: Location(x["geometry"]["coordinates"][1], x["geometry"]["coordinates"][0]).get_angle_to(self._config.map_center),
+            feature_collection["features"],
+            key=lambda x: Location(
+                x["geometry"]["coordinates"][1],
+                x["geometry"]["coordinates"][0]
+            ).get_angle_to(self._config.map_center),
         )
         return feature_collection
