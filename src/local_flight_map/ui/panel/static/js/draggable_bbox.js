@@ -22,6 +22,10 @@ class DraggableBBox {
     this.isDragging = false;
     this.startPoint = null;
     this.offset = null;
+    this.radarBeam = null;
+    this.animationInterval = null;
+    this.animationStartTime = null;
+    this.rotationSpeed = 60; // degrees per second
 
     // Bind event handlers
     this.boundEvents = {
@@ -34,15 +38,16 @@ class DraggableBBox {
   }
 
   /**
-   * Initialize the draggable rectangle
+   * Initialize the draggable rectangle and radar beam
    */
   initialize() {
     this.rectangle = L.rectangle(this.bounds, {
       color: 'red',
       weight: 2,
       opacity: 0.7,
-      fillOpacity: 0.05,
-      className: 'draggable-rectangle'
+      fillOpacity: 0.1,
+      className: 'draggable-rectangle',
+      pane: 'shadowPane' // Use shadowPane for background elements
     }).addTo(this.map);
 
     const path = this.rectangle.getElement();
@@ -54,6 +59,131 @@ class DraggableBBox {
     this.rectangle.on('mousedown', this.boundEvents.mousedown);
     this.map.on('mousemove', this.boundEvents.mousemove);
     this.map.on('mouseup', this.boundEvents.mouseup);
+
+    this.initializeRadarBeam();
+  }
+
+  /**
+   * Initialize the radar beam overlay
+   */
+  initializeRadarBeam() {
+    const center = this.bounds.getCenter();
+
+    // Create the radar icon
+    this.radarIcon = L.divIcon({
+      className: 'radar-icon',
+      html: `<img src="/ui/static/icons/radar.png" style="width: 32px; height: 32px;">`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+
+    this.radarMarker = L.marker(center, {
+      icon: this.radarIcon,
+      interactive: false,
+      pane: 'shadowPane' // Use shadowPane for background elements
+    }).addTo(this.map);
+
+    // Create the beam line
+    this.beamLine = L.polyline([center, center], {
+      color: 'rgba(0, 255, 0, 0.5)',
+      weight: 2,
+      opacity: 0.7,
+      className: 'radar-beam-line',
+      interactive: false, // Make the line non-interactive
+      pane: 'shadowPane' // Use shadowPane for background elements
+    }).addTo(this.map);
+
+    // Ensure the rectangle stays on top and is interactive
+    this.rectangle.bringToFront();
+    const path = this.rectangle.getElement();
+    if (path) {
+      path.setAttribute('pointer-events', 'all');
+      path.style.cursor = 'move';
+    }
+
+    this.startRadarAnimation();
+  }
+
+  /**
+   * Start the radar beam animation
+   */
+  async startRadarAnimation() {
+    try {
+      const interval = 16; // Fixed interval for smooth animation (~60fps)
+
+      this.animationStartTime = Date.now();
+      this.animationInterval = setInterval(() => {
+        this.updateRadarBeam();
+      }, interval);
+    } catch (error) {
+      console.error('Failed to start radar animation:', error);
+    }
+  }
+
+  /**
+   * Calculate the intersection point of a line with the bounding box
+   * @param {L.LatLng} center - The center point
+   * @param {number} angleRad - The angle in radians
+   * @param {L.LatLngBounds} bounds - The bounding box
+   * @returns {L.LatLng} The intersection point
+   */
+  calculateIntersectionPoint(center, angleRad, bounds) {
+    // Calculate the direction vector
+    const dx = Math.cos(angleRad);
+    const dy = Math.sin(angleRad);
+
+    // Calculate the distances to each boundary
+    const distToNorth = (bounds.getNorth() - center.lat) / dy;
+    const distToSouth = (bounds.getSouth() - center.lat) / dy;
+    const distToEast = (bounds.getEast() - center.lng) / dx;
+    const distToWest = (bounds.getWest() - center.lng) / dx;
+
+    // Find the minimum positive distance
+    let minDist = Infinity;
+    if (distToNorth > 0) minDist = Math.min(minDist, distToNorth);
+    if (distToSouth > 0) minDist = Math.min(minDist, distToSouth);
+    if (distToEast > 0) minDist = Math.min(minDist, distToEast);
+    if (distToWest > 0) minDist = Math.min(minDist, distToWest);
+
+    // Calculate the intersection point
+    const endLat = center.lat + dy * minDist;
+    const endLng = center.lng + dx * minDist;
+
+    return L.latLng(endLat, endLng);
+  }
+
+  /**
+   * Calculate the current angle based on elapsed time
+   * @returns {number} The current angle in radians
+   */
+  getCurrentAngle() {
+    const elapsedTime = (Date.now() - this.animationStartTime) / 1000;
+    const angle = (-elapsedTime * this.rotationSpeed) % 360;
+    return (angle * Math.PI) / 180;
+  }
+
+  /**
+   * Update the beam position
+   * @param {L.LatLngBounds} bounds - The current bounds
+   */
+  updateBeamPosition(bounds) {
+    if (!this.beamLine || !this.radarMarker) return;
+
+    const center = bounds.getCenter();
+    const angleRad = this.getCurrentAngle();
+    const endPoint = this.calculateIntersectionPoint(center, angleRad, bounds);
+    
+    // Update both the beam line and radar icon position
+    this.beamLine.setLatLngs([center, endPoint]);
+    this.radarMarker.setLatLng(center);
+  }
+
+  /**
+   * Update the radar beam position
+   */
+  updateRadarBeam() {
+    if (!this.rectangle) return;
+    this.updateBeamPosition(this.rectangle.getBounds());
   }
 
   /**
@@ -67,6 +197,21 @@ class DraggableBBox {
       this.rectangle.remove();
       this.map.setMaxBounds(null);
       this.map.setView([0, 0], 2);
+    }
+
+    if (this.animationInterval) {
+      clearInterval(this.animationInterval);
+      this.animationInterval = null;
+    }
+
+    if (this.beamLine) {
+      this.beamLine.remove();
+      this.beamLine = null;
+    }
+
+    if (this.radarMarker) {
+      this.radarMarker.remove();
+      this.radarMarker = null;
     }
   }
 
@@ -91,7 +236,6 @@ class DraggableBBox {
   async updateServerBounds(bounds) {
     try {
       const boundsObject = this.getBoundsObject(bounds);
-      console.log('Sending bounds:', boundsObject);
       const response = await fetch('/ui/bbox', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,6 +311,7 @@ class DraggableBBox {
     );
 
     this.rectangle.setBounds(newBounds);
+    this.updateBeamPosition(newBounds);
   }
 
   /**
@@ -187,6 +332,7 @@ class DraggableBBox {
       maxZoom: this.map.getZoom()
     });
     this.updateServerBounds(newBounds);
+    this.updateBeamPosition(newBounds);
   }
 }
 

@@ -14,11 +14,9 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from typing import Callable, Union, Dict, Any
+from typing import Union, Dict, Any
 import re
-import time
 import signal
 from types import FrameType
 
@@ -27,6 +25,7 @@ from .config import MapConfig
 from .layers import MapLayers
 from .data import DataSource
 from .config import BBox, logger
+from .middleware import SessionAuthenticator, RequestLoggerMiddleware
 
 
 class MapInterface:
@@ -58,78 +57,6 @@ class MapInterface:
                     **kwargs
                 }
             )
-
-    class SessionAuthenticator(BaseHTTPMiddleware):
-        """
-        Session authenticator middleware.
-        Handles authentication for protected routes.
-        """
-        def __init__(self, app: fastapi.FastAPI, paths: Dict[re.Pattern, Response] = None):
-            """
-            Initialize the session authenticator.
-
-            Args:
-                app: The FastAPI app to add middleware to.
-                paths: Dictionary mapping regex patterns to responses for path-based authentication.
-            """
-            BaseHTTPMiddleware.__init__(self, app)
-            self._paths = paths
-
-        async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
-            """
-            Process the request and handle authentication.
-
-            Args:
-                request: The incoming request.
-                call_next: The next middleware in the chain.
-
-            Returns:
-                The response from the next middleware or an authentication response.
-            """
-            if self._paths is not None:
-                for path, response in self._paths.items():
-                    if path.match(request.url.path):
-                        if "authenticated" not in request.session:
-                            request.session["authenticated"] = True
-                            return response
-            return await call_next(request)
-
-    class RequestLoggerMiddleware(BaseHTTPMiddleware):
-        """
-        Request logger middleware.
-        Logs information about each request including timing and response size.
-        """
-        def __init__(self, app: fastapi.FastAPI):
-            """
-            Initialize the request logger middleware.
-
-            Args:
-                app: The FastAPI app to add middleware to.
-            """
-            BaseHTTPMiddleware.__init__(self, app)
-
-        async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
-            """
-            Process the request and log information about it.
-
-            Args:
-                request: The incoming request.
-                call_next: The next middleware in the chain.
-
-            Returns:
-                The response from the next middleware.
-            """
-            start_time = time.time()
-            response = await call_next(request)
-            end_time = time.time()
-            diff = end_time - start_time
-            size = response.headers.get("Content-Length", 0)
-            logger.info(
-                f"{request.method} {request.url.path}: "
-                f"{response.status_code}: {int(size)/1024/1024:.3f} MB in {diff:.3f}s "
-                f"({int(size) / 8 / 1024 / 1024 / diff:.3f} MB/s)"
-            )
-            return response
 
     def __init__(self, config: MapConfig, client: ApiClient):
         """
@@ -167,7 +94,7 @@ class MapInterface:
 
         # Add session authenticator
         self._app.add_middleware(
-            MapInterface.SessionAuthenticator,
+            SessionAuthenticator,
             paths={
                 re.compile(r"^/aircrafts"): MapInterface.EmptyFeatureCollection(
                     headers={"X-Status-Code": "403"}
@@ -190,7 +117,7 @@ class MapInterface:
         )
 
         # Add request logger
-        self._app.add_middleware(MapInterface.RequestLoggerMiddleware)
+        self._app.add_middleware(RequestLoggerMiddleware)
 
         # Mount static files
         self._app.mount(
@@ -320,12 +247,15 @@ class MapInterface:
         """
         try:
             data = await self._data.get_aircrafts_geojson()
+            if data is None:
+                logger.warning("No aircraft data returned from data source")
+                return MapInterface.EmptyFeatureCollection()
             return JSONResponse(
                 content=data,
                 status_code=200
             )
         except Exception as e:
-            logger.error(f"Error getting aircraft data: {e}")
+            logger.error(f"Error getting aircraft data: {e}", exc_info=True)
             return MapInterface.EmptyFeatureCollection(
                 headers={"X-Status-Code": "500"}
             )
@@ -354,7 +284,6 @@ class MapInterface:
         """
         try:
             data = await request.json()
-            logger.info(f"Received bbox update request data: {data}")
             bounds_data = data.get("bounds", data)  # Handle both nested and flat structures
             self._config.map_bbox = BBox(
                 min_lat=bounds_data["south"],
@@ -384,6 +313,7 @@ class MapInterface:
             port=self._config.app_port,
             log_level="error"
         )
+        logger.info(f"Starting server on  {config.host}:{config.port}")
         server = uvicorn.Server(config)
 
         def handle_signal(sig: Union[signal.Signals, int], frame: FrameType):

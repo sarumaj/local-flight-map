@@ -23,6 +23,47 @@ class Location(NamedTuple):
     latitude: float
     longitude: float
 
+    def validate(self):
+        """
+        Validate the location coordinates.
+
+        Raises:
+            ValueError: If the latitude or longitude is out of valid range
+        """
+        if -90 > self.latitude or self.latitude > 90:
+            raise ValueError(f"Invalid latitude value: {self.latitude}")
+        if -180 > self.longitude or self.longitude > 180:
+            raise ValueError(f"Invalid longitude value: {self.longitude}")
+        
+    def get_angle_to(self, target: 'Location') -> float:
+        """
+        Calculate the initial bearing (angle) in degrees from this location to the target location.
+        This uses the great circle formula to calculate the initial bearing between two points.
+        
+        Args:
+            target: The target Location to calculate the angle to
+            
+        Returns:
+            float: The initial bearing in degrees (0-360) where:
+                  - 0 degrees points to true north
+                  - 90 degrees points east
+                  - 180 degrees points south
+                  - 270 degrees points west
+        """
+        # Convert to radians
+        lat_self = math.radians(self.latitude)
+        lon_self = math.radians(self.longitude)
+        lat_target = math.radians(target.latitude)
+        lon_target = math.radians(target.longitude)
+        
+        # Calculate the bearing using the great circle formula
+        diff_lon = lon_target - lon_self
+        y = math.sin(diff_lon) * math.cos(lat_target)
+        x = math.cos(lat_self) * math.sin(lat_target) - math.sin(lat_self) * math.cos(lat_target) * math.cos(diff_lon)
+        bearing = math.degrees(math.atan2(y, x))
+        
+        # Normalize to 0-360 degrees
+        return (bearing + 360) % 360
 
 class BBox(NamedTuple):
     """

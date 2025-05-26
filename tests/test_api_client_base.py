@@ -17,6 +17,78 @@ class TestLocation:
         with pytest.raises(AttributeError):
             location.latitude = 52.0
 
+    def test_location_get_angle_to(self):
+        """Test the get_angle_to method of Location class."""
+        # Test case 1: North bearing (0 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=1, longitude=0)
+        assert loc1.get_angle_to(loc2) == pytest.approx(0, abs=0.01)
+
+        # Test case 2: East bearing (90 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=0, longitude=1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)
+
+        # Test case 3: South bearing (180 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=-1, longitude=0)
+        assert loc1.get_angle_to(loc2) == pytest.approx(180, abs=0.01)
+
+        # Test case 4: West bearing (270 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=0, longitude=-1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(270, abs=0.01)
+
+        # Test case 5: Northeast bearing (45 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=1, longitude=1)
+        # Due to Earth's curvature, the bearing isn't exactly 45 degrees
+        assert loc1.get_angle_to(loc2) == pytest.approx(45, abs=0.01)
+
+        # Test case 6: Northwest bearing (315 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=1, longitude=-1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(315, abs=0.01)
+
+        # Test case 7: Southeast bearing (135 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=-1, longitude=1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(135, abs=0.01)
+
+        # Test case 8: Southwest bearing (225 degrees)
+        loc1 = Location(latitude=0, longitude=0)
+        loc2 = Location(latitude=-1, longitude=-1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(225, abs=0.01)
+
+        # Test case 9: Same location (should be 0 degrees)
+        loc1 = Location(latitude=45, longitude=-120)
+        assert loc1.get_angle_to(loc1) == pytest.approx(0, abs=0.01)
+
+        # Test case 10: Real-world example (San Francisco to New York)
+        sf = Location(latitude=37.7749, longitude=-122.4194)
+        ny = Location(latitude=40.7128, longitude=-74.0060)
+        # Expected bearing is approximately 70 degrees (northeast)
+        assert sf.get_angle_to(ny) == pytest.approx(70, abs=1)
+
+        # Test case 11: Cross the international date line
+        loc1 = Location(latitude=0, longitude=179)
+        loc2 = Location(latitude=0, longitude=-179)
+        # Should calculate the shorter path across the date line
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)
+
+        # Test case 12: Near the poles
+        loc1 = Location(latitude=89, longitude=0)
+        loc2 = Location(latitude=89.5, longitude=90)  # Moving both north and east
+        # At high latitudes, the bearing should be approximately 26.57 degrees
+        # This is because the great circle path curves significantly towards the pole
+        assert loc1.get_angle_to(loc2) == pytest.approx(26.57, abs=0.01)
+
+        # Test case 13: Pure eastward movement at high latitude
+        loc1 = Location(latitude=89, longitude=0)
+        loc2 = Location(latitude=89, longitude=1)  # Moving only east by 1 degree
+        # The initial bearing should be approximately east
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=1)
+
 
 class TestBBox:
     def test_bbox_creation(self):
