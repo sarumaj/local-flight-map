@@ -35,6 +35,8 @@
         "memomaps",
         "mlat",
         "multilateration",
+        "noopener",
+        "noreferrer",
         "opensky",
         "OPNV",
         "opnvkarte",

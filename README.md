@@ -23,7 +23,6 @@ This app is currently hosted at [local-flight-map.sarumaj.com](https://local-fli
   - HexDB.io
 - Fast and responsive web interface built with FastAPI
 - Asynchronous data fetching for optimal performance
-- Modern UI components using Panel and Bokeh
 
 ## API Documentation
 
@@ -239,8 +238,7 @@ local-flight-map
 2. Open your web browser and navigate to `http://localhost:5006`
 
 3. The interactive map will display:
-   - Current aircraft positions
-   - Flight paths
+   - Current aircraft positions and path tracking
    - Aircraft information on hover
    - Real-time updates
 

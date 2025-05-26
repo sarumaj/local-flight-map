@@ -21,22 +21,26 @@
     socialLinks.className = 'social-links';
 
     // GitHub link
-    const githubLink = document.createElement('a');
-    githubLink.href = 'https://github.com/sarumaj';
-    githubLink.className = 'social-link';
-    githubLink.target = '_blank';
-    githubLink.rel = 'noopener noreferrer';
-    githubLink.innerHTML = '<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub">';
-    socialLinks.appendChild(githubLink);
-
-    // LinkedIn link
-    const linkedinLink = document.createElement('a');
-    linkedinLink.href = 'https://www.linkedin.com/in/dawid-ciepiela/';
-    linkedinLink.className = 'social-link';
-    linkedinLink.target = '_blank';
-    linkedinLink.rel = 'noopener noreferrer';
-    linkedinLink.innerHTML = '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg" alt="LinkedIn">';
-    socialLinks.appendChild(linkedinLink);
+    for (const link of [
+      {
+        src: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+        href: 'https://github.com/sarumaj/local-flight-map',
+        alt: 'GitHub'
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg',
+        href: 'https://www.linkedin.com/in/dawid-ciepiela/',
+        alt: 'LinkedIn'
+      }
+    ]) {
+      const linkElement = document.createElement('a');
+      linkElement.href = link.href;
+      linkElement.className = 'social-link';
+      linkElement.target = '_blank';
+      linkElement.rel = 'noopener noreferrer';
+      linkElement.innerHTML = `<img src="${link.src}" alt="${link.alt}">`;
+      socialLinks.appendChild(linkElement);
+    }
 
     document.body.appendChild(socialLinks);
   });
