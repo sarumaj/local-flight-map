@@ -1,0 +1,55 @@
+/* CSS Custom Properties */
+:root {
+  --color-primary: #3498db;
+  --color-text: #495057;
+  --color-text-light: #6c757d;
+  --color-background: #f8f9fa;
+  --color-border: #dee2e6;
+  --color-overlay: rgba(255, 255, 255, 0.3);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --border-radius-sm: 3px;
+  --border-radius-md: 4px;
+  --border-radius-lg: 6px;
+  --border-radius-xl: 16px;
+  --spacing-xs: 2px;
+  --spacing-sm: 4px;
+  --spacing-md: 5px;
+  --spacing-lg: 8px;
+  --spacing-xl: 15px;
+  --z-index-overlay: 999;
+  --z-index-spinner: 1000;
+  --z-index-marker: 1001;
+}
+
+/* Common utility classes */
+.sticky-header {
+  margin: 0 0 10px 0;
+  padding: var(--spacing-md);
+  background: var(--color-background);
+  position: sticky;
+  top: 0;
+}
+
+.table-base {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-base th {
+  text-align: left;
+  padding: var(--spacing-md);
+  background: var(--color-background);
+}
+
+.table-base td {
+  padding: var(--spacing-md);
+}
+
+.table-base tr {
+  border-bottom: 1px solid #eee;
+}
+
+.scrollable-container {
+  max-height: 300px;
+  overflow-y: auto;
+}

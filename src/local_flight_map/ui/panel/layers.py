@@ -30,14 +30,16 @@ class MapLayers:
             cluster_group: Group for clustering aircraft markers.
             minimap: Small overview map in the corner.
             full_screen: Control for toggling fullscreen mode.
+            realtime: Realtime layer for displaying live aircraft positions.
         """
         world_imagery: folium.TileLayer
         opnvkarte: folium.TileLayer
         mouse_position: MousePosition
-        layer_control: folium.LayerControl
         cluster_group: MarkerCluster
         minimap: MiniMap
         full_screen: Fullscreen
+        realtime: Realtime
+        layer_control: folium.LayerControl
 
         @classmethod
         def from_scratch(cls) -> 'MapLayers._Layers':
@@ -98,7 +100,7 @@ class MapLayers:
             lat_formatter="function(num) {return L.Util.formatNum(num, 3) + '&deg;N';};",
             lng_formatter="function(num) {return L.Util.formatNum(num, 3) + '&deg;E';};",
         )
-        self._layers.layer_control = folium.LayerControl()
+        self._layers.layer_control = folium.LayerControl(collapsed=False)
         self._layers.cluster_group = MarkerCluster(
             name="Local Flights",
             control=False,
@@ -112,6 +114,7 @@ class MapLayers:
             container=self._layers.cluster_group,
             interval=self._config.map_refresh_interval,
             remove_missing=True,
+            start=True,
         )
         self._layers.minimap = MiniMap(
             tiles=self._layers.opnvkarte,
@@ -134,11 +137,18 @@ class MapLayers:
         Add all layers and controls to the map.
         This method should be called after initialization to display the layers.
         """
+        # Base tile layers first
         self._layers.opnvkarte.add_to(self._map)
         self._layers.world_imagery.add_to(self._map)
+
+        # UI controls that don't depend on other layers
         self._layers.mouse_position.add_to(self._map)
-        self._layers.cluster_group.add_to(self._map)
-        self._layers.realtime.add_to(self._map)
         self._layers.minimap.add_to(self._map)
         self._layers.full_screen.add_to(self._map)
+
+        # Marker cluster and realtime layer
+        self._layers.cluster_group.add_to(self._map)
+        self._layers.realtime.add_to(self._map)
+
+        # Layer control last to ensure it can see all available layers
         self._layers.layer_control.add_to(self._map)

@@ -9,7 +9,7 @@ import fastapi
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from .config import logger
 
@@ -41,6 +41,7 @@ class SessionAuthenticator(BaseHTTPMiddleware):
         Returns:
             The response from the next middleware or an authentication response.
         """
+        unauthorized_response: Optional[Response] = None
         for path, response in (
             self._paths or {
                 re.compile(r"^/.*"): JSONResponse(
@@ -51,11 +52,25 @@ class SessionAuthenticator(BaseHTTPMiddleware):
             }
         ).items():
             if path.match(request.url.path):
-                if "authenticated" not in request.session:
-                    logger.warning(f"Unauthenticated request to {request.url.path}")
-                    request.session["authenticated"] = True
-                    return response
-        
+                unauthorized_response = response
+                break
+
+        if unauthorized_response is None:
+            return await call_next(request)
+
+        # Check if user has given cookie consent
+        if not request.session.get("cookie_consent"):
+            logger.warning(f"No cookie consent for {request.url.path}")
+            return unauthorized_response
+
+        # Check if user is authenticated
+        if not request.session.get("authenticated"):
+            logger.warning(f"Unauthenticated request to {request.url.path}")
+            # Set authenticated flag in session
+            request.session["authenticated"] = True
+            # Return the response but don't block the request
+            return await call_next(request)
+
         return await call_next(request)
 
 
@@ -94,4 +109,4 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
             f"{response.status_code}: {int(size)/1024/1024:.3f} MB in {diff:.3f}s "
             f"({int(size) / 8 / 1024 / 1024 / diff:.3f} MB/s)"
         )
-        return response 
+        return response

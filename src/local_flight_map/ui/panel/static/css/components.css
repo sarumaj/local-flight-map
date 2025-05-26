@@ -1,0 +1,200 @@
+/* Loading overlay styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--color-overlay);
+  display: none;
+  z-index: var(--z-index-overlay);
+}
+
+.loading-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid var(--color-primary);
+  border-radius: 50%;
+  z-index: var(--z-index-spinner);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Flight info styles */
+.flight-info {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(33, 37, 41, 0.7);
+  color: #fff;
+  padding: var(--border-radius-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  white-space: nowrap;
+  z-index: var(--z-index-marker);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+.flight-info-value,
+.flight-info-vs {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1px var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+}
+
+.flight-info-vs {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Info popup styles */
+.radar-info,
+.aircraft-info {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.radar-info h3,
+.aircraft-info h3 {
+  margin: 0 0 10px 0;
+  padding: var(--spacing-md);
+  background: var(--color-background);
+  position: sticky;
+  top: 0;
+}
+
+.radar-info table,
+.aircraft-info table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.radar-info th,
+.aircraft-info th {
+  text-align: left;
+  padding: var(--spacing-md);
+  background: var(--color-background);
+}
+
+.radar-info td,
+.aircraft-info td {
+  padding: var(--spacing-md);
+}
+
+.radar-info tr,
+.aircraft-info tr {
+  border-bottom: 1px solid #eee;
+}
+
+/* Tag styles */
+.tag-container {
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.tag {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: var(--color-background);
+  border-radius: var(--border-radius-xl);
+  font-size: 12px;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.tag-key {
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.tag-value {
+  color: var(--color-text);
+  margin-left: var(--spacing-sm);
+}
+
+/* Section title styles */
+.section-title {
+  margin-bottom: var(--spacing-lg);
+  font-weight: 500;
+}
+
+/* Cookie consent modal styles */
+#cookie-consent-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: calc(var(--z-index-spinner) + 1);
+}
+
+#cookie-consent-modal .modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius-lg);
+  max-width: 500px;
+  width: 90%;
+  box-shadow: var(--shadow-sm);
+}
+
+#cookie-consent-modal h2 {
+  margin: 0 0 1rem 0;
+  color: var(--color-text);
+}
+
+#cookie-consent-modal p {
+  margin: 0 0 1.5rem 0;
+  color: var(--color-text-light);
+  line-height: 1.5;
+}
+
+#cookie-consent-modal .button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+#cookie-consent-modal button {
+  padding: 0.75rem 1.5rem;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#cookie-consent-modal .accept-button {
+  background: #4CAF50;
+}
+
+#cookie-consent-modal .decline-button {
+  background: #f44336;
+}

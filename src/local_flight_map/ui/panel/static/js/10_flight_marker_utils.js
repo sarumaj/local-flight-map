@@ -118,12 +118,12 @@ const FlightMarkerUtils = {
     const flightLevel = altitude === 'ground' ? 0 : Math.round(altitude / 100);
 
     return `
-            <div style="${this.flightInfoStyles.container.replace('{markerSize}', markerSize)}">
-                <span style="${this.flightInfoStyles.value}">FL${flightLevel}</span>
-                <span style="${this.flightInfoStyles.value}">${Math.round(groundSpeed)}kt</span>
-                <span style="${this.flightInfoStyles.vsIndicator}; color: ${vsColor};">${vsSymbol}</span>
-            </div>
-        `;
+      <div class="flight-info" style="top: -${markerSize}px;">
+        <span class="flight-info-value">FL${flightLevel}</span>
+        <span class="flight-info-value">${Math.round(groundSpeed)}kt</span>
+        <span class="flight-info-vs" style="color: ${vsColor};">${vsSymbol}</span>
+      </div>
+    `;
   },
 
   /**
@@ -182,8 +182,8 @@ async function getConfig() {
   }
 
   // Return cached value if it's still valid
-  if (configCache.interval && configCache.bounds && configCache.center && configCache.radius && 
-      (now - configCache.lastFetch) < cacheDuration) {
+  if (configCache.interval && configCache.bounds && configCache.center && configCache.radius &&
+    (now - configCache.lastFetch) < cacheDuration) {
     return {
       interval: configCache.interval,
       bounds: configCache.bounds,
@@ -212,7 +212,7 @@ async function getConfig() {
         configCache.lastFetch = 0; // Force another fetch
         return getConfig(); // Recursively try again
       }
-      
+
       // Update all config properties
       configCache.interval = config.interval;
       configCache.bounds = config.bounds;
