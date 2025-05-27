@@ -157,7 +157,7 @@ class TestResponseObject:
     def test_to_json(self):
         obj = self.SampleResponse(name="test", value=42)
         json_str = obj.to_json()
-        assert json_str == '{"name": "test", "value": 42}'
+        assert json_str == '{"name":"test","value":42}'
 
     def test_from_json(self):
         json_str = '{"name": "test", "value": 42}'

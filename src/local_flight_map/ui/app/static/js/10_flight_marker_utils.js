@@ -165,7 +165,6 @@ function clearConfigCache() {
   configCache.radius = null;
   configCache.lastFetch = 0;
   configCache.fetchPromise = null;
-  console.log('Configuration cache cleared');
 }
 
 /**

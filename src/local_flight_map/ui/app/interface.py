@@ -6,7 +6,12 @@ Provides the main interface for displaying and interacting with the flight map.
 import folium
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import (
+    ORJSONResponse as JSONResponse,
+    RedirectResponse,
+    HTMLResponse,
+    Response
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -127,7 +132,10 @@ class MapInterface:
         # Add routes
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
         self._app.add_api_route("/ui/config", self.update_config, methods=["POST"])
-        self._app.add_api_route("/auth/cookie-consent", self.handle_cookie_consent, methods=["POST"])
+        self._app.add_api_route(
+            "/auth/cookie-consent", self.handle_cookie_consent, methods=["GET", "POST"],
+            response_model=None
+        )
         self._app.add_api_route("/auth/status", self.check_auth_status, methods=["GET"])
         self._app.add_api_route("/service/health", self.health, methods=["GET"])
         self._app.add_api_route("/service/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
@@ -160,6 +168,21 @@ class MapInterface:
         self._layers.add_to_map()
 
         self._add_static_scripts()
+
+    def _apply_cookie_consent(self, response: Response) -> Response:
+        """
+        Apply cookie consent to the response.
+        """
+        response.set_cookie(
+            "cookie_consent",
+            "true",
+            max_age=60 * 60 * 24 * 365,  # 1 year
+            httponly=True,
+            samesite="lax" if self._config.app_dev_mode else "none",
+            secure=not self._config.app_dev_mode,
+            path="/"
+        )
+        return response
 
     def _add_static_scripts(self):
         """
@@ -303,39 +326,37 @@ class MapInterface:
                 headers={"X-Status-Code": "500"}
             )
 
-    async def handle_cookie_consent(self, request: Request) -> JSONResponse:
+    async def handle_cookie_consent(self, request: Request) -> Union[JSONResponse, RedirectResponse]:
         """
         Handle cookie consent from the client.
+        Supports both GET (with query parameters) and POST (with JSON body) requests.
         Sets a consent cookie and updates the session.
 
         Args:
             request: The HTTP request containing consent information.
 
         Returns:
-            JSONResponse: A response indicating success or failure.
+            Union[JSONResponse, RedirectResponse]: A response indicating success or failure.
+            For GET requests, redirects to the main page. For POST requests, returns JSON.
         """
         try:
-            data = await request.json()
-            if data.get("consent"):
-                request.session["cookie_consent"] = True
-                request.session["authenticated"] = True
+            # Handle GET request with query parameters
+            if request.method == "GET":
+                consent = request.query_params.get("consent", "").lower() == "true"
+                if consent:
+                    request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
+                    return self._apply_cookie_consent(RedirectResponse(url="/", status_code=303))
+                
+                return RedirectResponse(url="/", status_code=303)
 
-                response = JSONResponse(
+            # Handle POST request with JSON body
+            data = await request.json()
+            if data.get("consent") is True:
+                request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
+                return self._apply_cookie_consent(JSONResponse(
                     content={"status": "ok"},
                     status_code=200
-                )
-
-                response.set_cookie(
-                    "cookie_consent",
-                    "true",
-                    max_age=60 * 60 * 24 * 365,  # 1 year
-                    httponly=True,
-                    samesite="lax" if self._config.app_dev_mode else "none",
-                    secure=not self._config.app_dev_mode,
-                    path="/"
-                )
-
-                return response
+                ))
 
             return JSONResponse(
                 content={"status": "error", "message": "Consent not given"},
@@ -343,6 +364,8 @@ class MapInterface:
             )
         except Exception as e:
             logger.error(f"Error handling cookie consent: {e}")
+            if request.method == "GET":
+                return RedirectResponse(url="/", status_code=303)
             return JSONResponse(
                 content={"status": "error", "message": str(e)},
                 status_code=500

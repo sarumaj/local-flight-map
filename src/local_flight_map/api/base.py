@@ -7,7 +7,7 @@ import aiohttp
 from typing import Optional, NamedTuple, Dict, Any, List, Union, Tuple
 import math
 from dataclasses import asdict
-import json
+import orjson as json
 from itertools import zip_longest
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -204,7 +204,7 @@ class ResponseObject:
         Returns:
             A JSON string representation of the object
         """
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict()).decode("utf-8")
 
     @classmethod
     def from_json(cls, json_str: str) -> 'ResponseObject':

@@ -6,7 +6,7 @@ Provides authentication and request logging middleware.
 import re
 import time
 import fastapi
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import ORJSONResponse as JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from typing import Callable, Dict, Optional
