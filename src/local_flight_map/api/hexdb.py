@@ -216,7 +216,7 @@ class HexDbClient(BaseClient):
         await self.get_aircraft_information_from_hexdb.cache_close()
         await self.get_airport_information_from_hexdb.cache_close()
         await self.get_route_information_from_hexdb.cache_close()
-        await super(HexDbClient, self).__aexit__(exc_type, exc_val, exc_tb)
+        await BaseClient.__aexit__(self, exc_type, exc_val, exc_tb)
 
     @alru_cache(maxsize=1000)
     async def get_route_information_from_hexdb(

@@ -10,10 +10,9 @@ import asyncio
 from async_lru import alru_cache
 from dataclasses import dataclass
 from pydantic import Field
-import aiohttp
 from collections import defaultdict
 
-from .base import BaseClient, BaseConfig, BBox, ResponseObject
+from .base import BaseClient, BaseConfig, BBox, ResponseObject, OAuth2AuthMiddleware
 
 
 @dataclass
@@ -313,12 +312,13 @@ class OpenSkyConfig(BaseConfig):
     Configuration class for the OpenSky Network API client.
 
     This class manages the configuration settings for connecting to the OpenSky
-    Network API, including authentication and rate limiting parameters.
+    Network API, including OAuth2 authentication and rate limiting parameters.
 
     Attributes:
         opensky_base_url: The base URL for the OpenSky API.
-        opensky_username: The username for the OpenSky API.
-        opensky_password: The password for the OpenSky API.
+        opensky_auth_url: The URL for OAuth2 token endpoint.
+        opensky_client_id: The OAuth2 client ID.
+        opensky_client_secret: The OAuth2 client secret.
         opensky_rate_limit_window_no_auth: The rate limit window for the OpenSky API without authentication.
         opensky_rate_limit_window_auth: The rate limit window for the OpenSky API with authentication.
     """
@@ -326,13 +326,17 @@ class OpenSkyConfig(BaseConfig):
         default="https://opensky-network.org/",
         description="The base URL for the OpenSky API"
     )
-    opensky_username: str = Field(
-        default="",
-        description="The username for the OpenSky API"
+    opensky_auth_url: str = Field(
+        default="https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token",
+        description="The URL for OAuth2 token endpoint"
     )
-    opensky_password: str = Field(
+    opensky_client_id: str = Field(
         default="",
-        description="The password for the OpenSky API",
+        description="The OAuth2 client ID"
+    )
+    opensky_client_secret: str = Field(
+        default="",
+        description="The OAuth2 client secret",
         repr=False,
         exclude=True
     )
@@ -374,13 +378,19 @@ class OpenSkyClient(BaseClient):
             self,
             config=config,
             base_url=config.opensky_base_url,
-            auth=aiohttp.BasicAuth(
-                config.opensky_username,
-                config.opensky_password
-            ) if config.opensky_username else None
+            middlewares=(
+                OAuth2AuthMiddleware(
+                    auth_url=config.opensky_auth_url,
+                    client_id=config.opensky_client_id,
+                    client_secret=config.opensky_client_secret,
+                    grant_type="client_credentials"
+                ),
+            )
         )
         self._last_requests = defaultdict(lambda: 0)
         self._rate_limit_lock = asyncio.Lock()
+        self._access_token = None
+        self._token_expiry = 0
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
@@ -415,7 +425,7 @@ class OpenSkyClient(BaseClient):
         now = int(datetime.now().timestamp())
         window = (
             self._config.opensky_rate_limit_window_auth
-            if self._config.opensky_username
+            if self._config.opensky_client_id and self._config.opensky_client_secret
             else self._config.opensky_rate_limit_window_no_auth
         )
         await self._rate_limit_lock.acquire()
@@ -474,7 +484,7 @@ class OpenSkyClient(BaseClient):
         await self._apply_opensky_rate_limit(self.get_states_from_opensky)
         async with self._session.get(
             "/api/states/all",
-            params=params,
+            params=params
         ) as response:
             data = await self._handle_response(response)
             return States.from_dict(data) if data else None
@@ -503,8 +513,8 @@ class OpenSkyClient(BaseClient):
         Raises:
             ValueError: If authentication is not configured.
         """
-        if not self._config.opensky_username or not self._config.opensky_password:
-            raise ValueError("Authentication required for this operation")
+        if not self._config.opensky_client_id or not self._config.opensky_client_secret:
+            raise ValueError("OAuth2 client credentials required for this operation")
 
         params = {'extended': 1}
         if time_secs:
@@ -528,7 +538,7 @@ class OpenSkyClient(BaseClient):
         await self._apply_opensky_rate_limit(self.get_my_states_from_opensky)
         async with self._session.get(
             "/api/states/own",
-            params=params,
+            params=params
         ) as response:
             data = await self._handle_response(response)
             return States.from_dict(data) if data else None
@@ -567,7 +577,7 @@ class OpenSkyClient(BaseClient):
         await self._apply_opensky_rate_limit(self.get_track_by_aircraft_from_opensky)
         async with self._session.get(
             "/api/tracks/all",
-            params=params,
+            params=params
         ) as response:
             data = await self._handle_response(response)
             return FlightTrack.from_dict(data) if data else None

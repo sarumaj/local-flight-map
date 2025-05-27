@@ -8,7 +8,7 @@ from typing import Optional
 from .opensky import OpenSkyClient, OpenSkyConfig
 from .hexdb import HexDbClient, HexDbConfig
 from .adsbexchange import AdsbExchangeClient, AdsbExchangeConfig
-from .base import BBox, Location
+from .base import BBox, Location, OAuth2AuthMiddleware
 
 
 class ApiConfig(OpenSkyConfig, HexDbConfig, AdsbExchangeConfig):
@@ -69,6 +69,7 @@ __all__ = [
         ApiConfig,
         ApiClient,
         BBox,
-        Location
+        Location,
+        OAuth2AuthMiddleware
     )
 ]

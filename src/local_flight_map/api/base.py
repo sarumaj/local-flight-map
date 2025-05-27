@@ -10,6 +10,10 @@ from dataclasses import asdict
 import orjson as json
 from itertools import zip_longest
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from datetime import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class Location(NamedTuple):
@@ -34,15 +38,15 @@ class Location(NamedTuple):
             raise ValueError(f"Invalid latitude value: {self.latitude}")
         if -180 > self.longitude or self.longitude > 180:
             raise ValueError(f"Invalid longitude value: {self.longitude}")
-        
+
     def get_angle_to(self, target: 'Location') -> float:
         """
         Calculate the initial bearing (angle) in degrees from this location to the target location.
         This uses the great circle formula to calculate the initial bearing between two points.
-        
+
         Args:
             target: The target Location to calculate the angle to
-            
+
         Returns:
             float: The initial bearing in degrees (0-360) where:
                   - 0 degrees points to true north
@@ -55,15 +59,16 @@ class Location(NamedTuple):
         lon_self = math.radians(self.longitude)
         lat_target = math.radians(target.latitude)
         lon_target = math.radians(target.longitude)
-        
+
         # Calculate the bearing using the great circle formula
         diff_lon = lon_target - lon_self
         y = math.sin(diff_lon) * math.cos(lat_target)
         x = math.cos(lat_self) * math.sin(lat_target) - math.sin(lat_self) * math.cos(lat_target) * math.cos(diff_lon)
         bearing = math.degrees(math.atan2(y, x))
-        
+
         # Normalize to 0-360 degrees
         return (bearing + 360) % 360
+
 
 class BBox(NamedTuple):
     """
@@ -313,3 +318,100 @@ class BaseClient:
 
         response.raise_for_status()
         return await response.json() or None
+
+
+class OAuth2AuthMiddleware:
+    """
+    Middleware for adding OAuth2 authentication to requests.
+
+    This middleware adds an OAuth2 access token to the request headers if
+    the request does not already have an Authorization header.
+    """
+    def __init__(
+        self, *,
+        auth_url: str,
+        client_id: str,
+        client_secret: str,
+        grant_type: str = "client_credentials"
+    ):
+        """
+        Initialize the OAuth2 authentication middleware.
+
+        Args:
+            auth_url: The URL for the OAuth2 token endpoint.
+            client_id: The OAuth2 client ID.
+            client_secret: The OAuth2 client secret.
+            grant_type: The OAuth2 grant type. Defaults to "client_credentials".
+        """
+        self._auth_url = auth_url
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._grant_type = grant_type
+        self._access_token = None
+        self._token_expiry = 0
+        self._logger = logging.getLogger("local_flight_map.api.OAuth2AuthMiddleware")
+
+    async def _get_access_token(self) -> str:
+        """
+        Get a valid OAuth2 access token using client credentials flow.
+        If the current token is still valid, it will be returned.
+        Otherwise, a new token will be requested.
+
+        Returns:
+            str: A valid access token.
+
+        Raises:
+            ValueError: If client credentials are not configured.
+        """
+        if not self._client_id and not self._client_secret:
+            self._logger.warning("OAuth2 client credentials not configured")
+            return None
+
+        now = int(datetime.now().timestamp())
+        if self._access_token and now < self._token_expiry:
+            return self._access_token
+
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                self._auth_url,
+                data={
+                    "grant_type": self._grant_type,
+                    "client_id": self._client_id,
+                    "client_secret": self._client_secret
+                }
+            ) as response
+        ):
+            try:
+                response.raise_for_status()
+            except aiohttp.ClientResponseError as e:
+                raise ValueError(f"Failed to get access token: {response.status}") from e
+            else:
+                data = await response.json()
+                self._access_token = data["access_token"]
+                self._token_expiry = now + data["expires_in"]
+                return self._access_token
+
+    async def __call__(
+        self, request: aiohttp.ClientRequest, handler: aiohttp.ClientHandlerType
+    ) -> aiohttp.ClientResponse:
+        """
+        Method to be called by the client.
+
+        Args:
+            request: The request to add the OAuth2 access token to.
+            handler: The handler to call the request with.
+
+        Returns:
+            The response from the handler.
+        """
+        if not request.headers:
+            request.headers = {}
+
+        if request.headers.get("Authorization"):
+            raise ValueError("Authorization header already set")
+
+        if token := await self._get_access_token():
+            request.headers["Authorization"] = f"Bearer {token}"
+
+        return await handler(request)

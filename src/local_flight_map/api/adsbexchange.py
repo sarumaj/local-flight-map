@@ -314,7 +314,7 @@ class AdsbExchangeClient(BaseClient):
         self.get_aircraft_from_adsbexchange_by_squawk.cache_clear()
         self.get_military_aircrafts_from_adsbexchange.cache_clear()
         self.get_aircraft_from_adsbexchange_within_range.cache_clear()
-        await super().__aexit__(exc_type, exc_val, exc_tb)
+        await BaseClient.__aexit__(self, exc_type, exc_val, exc_tb)
 
     @alru_cache(maxsize=1000)
     async def get_aircraft_from_adsbexchange_by_registration(

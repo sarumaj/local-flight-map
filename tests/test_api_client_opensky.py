@@ -15,9 +15,13 @@ from local_flight_map.api.opensky import (
 
 @pytest.fixture
 async def opensky_client():
+    config = OpenSkyConfig(
+        opensky_client_id="",
+        opensky_client_secret=""
+    )
     with patch('async_lru._LRUCacheWrapper.cache_close') as close:
         close.return_value = AsyncMock()
-        client = OpenSkyClient(OpenSkyConfig())
+        client = OpenSkyClient(config)
         yield client
         await client.close()
 
@@ -25,8 +29,8 @@ async def opensky_client():
 @pytest.fixture
 async def authenticated_opensky_client():
     config = OpenSkyConfig(
-        opensky_username="test_user",
-        opensky_password="test_pass"
+        opensky_client_id="test_id",
+        opensky_client_secret="test_secret"
     )
     with patch('async_lru._LRUCacheWrapper.cache_close') as close:
         close.return_value = AsyncMock()
@@ -71,6 +75,8 @@ class TestOpenSkyClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock()
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -125,6 +131,8 @@ class TestOpenSkyClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock()
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -169,6 +177,8 @@ class TestOpenSkyClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock()
 
         with patch.object(authenticated_opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -193,7 +203,7 @@ class TestOpenSkyClient:
     async def test_get_my_states_from_opensky_requires_auth(self, opensky_client):
         async with opensky_client:
             # Test that unauthenticated client raises error
-            with pytest.raises(ValueError, match="Authentication required for this operation"):
+            with pytest.raises(ValueError, match="OAuth2 client credentials required for this operation"):
                 await opensky_client.get_my_states_from_opensky()
 
     @pytest.mark.asyncio

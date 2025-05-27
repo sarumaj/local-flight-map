@@ -54,3 +54,5 @@ jobs:
           delay: 5
         env:
           HD_ADSBEXCHANGE_API_KEY: ${{ secrets.ADSBEXCHANGE_API_KEY }}
+          HD_OPENSKY_CLIENT_ID: ${{ secrets.OPENSKY_CLIENT_ID }}
+          HD_OPENSKY_CLIENT_SECRET: ${{ secrets.OPENSKY_CLIENT_SECRET }}
