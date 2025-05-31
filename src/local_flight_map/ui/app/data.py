@@ -6,7 +6,7 @@ Handles aircraft data processing, enrichment, and conversion to GeoJSON format.
 from typing import Dict, Any, Union
 import asyncio
 
-from ...api import ApiClient, Location
+from ...api import ApiClients, Location
 from ...api.adsbexchange import AdsbExchangeResponse
 from ...api.opensky import States
 from .config import MapConfig, logger
@@ -18,15 +18,19 @@ class DataSource:
     Manages data retrieval from different providers and enriches it with additional information.
     """
 
-    def __init__(self, client: ApiClient, config: MapConfig):
+    def __init__(
+        self,
+        clients: ApiClients,
+        config: MapConfig
+    ):
         """
         Initialize the data source.
 
         Args:
-            client: The API client for fetching aircraft data.
+            clients: The API clients for fetching aircraft data from ADSBExchange, HexDB, and OpenSky.
             config: The map configuration containing data source settings.
         """
-        self._client = client
+        self._clients = clients
         self._config = config
         self._hexdb_semaphore = asyncio.Semaphore(5)  # Limit concurrent HexDB API calls
 
@@ -117,8 +121,8 @@ class DataSource:
                 icao24 = feature["properties"]["icao24_code"]
                 async with self._hexdb_semaphore:
                     for result in await asyncio.gather(
-                        self._client.get_aircraft_information_from_hexdb(icao24),
-                        self._client.get_route_information_from_hexdb(icao24),
+                        self._clients.hexdb_client.get_aircraft_information_from_hexdb(icao24),
+                        self._clients.hexdb_client.get_route_information_from_hexdb(icao24),
                         return_exceptions=True
                     ):
                         if isinstance(result, Exception):
@@ -151,10 +155,10 @@ class DataSource:
         match self._config.data_provider:
             case 'adsbexchange':
                 args = (self._config.map_center, self._config.map_radius)
-                method = self._client.get_aircraft_from_adsbexchange_within_range
+                method = self._clients.adsbexchange_client.get_aircraft_from_adsbexchange_within_range
             case 'opensky':
                 args = (0, None, self._config.map_bbox)
-                method = self._client.get_states_from_opensky
+                method = self._clients.opensky_client.get_states_from_opensky
             case _:
                 raise ValueError(f"Invalid provider: {self._config.data_provider}")
 

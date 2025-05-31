@@ -38,10 +38,3 @@ class Realtime(FoliumRealtime):
         """
         options = JsCode.get_options(prefix="realtime_")
         FoliumRealtime.__init__(self, *args, **{**options, **kwargs})
-
-    def start(self):
-        """
-        Start the real-time layer.
-        """
-        print(dir(self))
-        self._container.start()

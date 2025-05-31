@@ -9,7 +9,11 @@ class BaseClient:
     Base class for API clients.
     Provides common functionality for making HTTP requests and managing sessions.
     """
-    def __init__(self, config: Optional[BaseConfig] = None, **session_params: Dict[str, Any]):
+    def __init__(
+        self,
+        config: Optional[BaseConfig] = None,
+        **session_params: Dict[str, Any]
+    ):
         """
         Initialize the API client.
 

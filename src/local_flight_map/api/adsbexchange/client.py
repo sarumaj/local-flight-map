@@ -162,7 +162,7 @@ class AdsbExchangeClient(BaseClient):
             An AdsbExchangeResponse containing the aircraft data, or None if not found.
         """
         async with self._session.get(
-            f"/v2/lat/{center.latitude}/lon/{center.longitude}/dist/{radius}",
+            f"/v2/lat/{center.latitude:.6f}/lon/{center.longitude:.6f}/dist/{radius:.3f}",
         ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeResponse.from_dict(data) if data else None
