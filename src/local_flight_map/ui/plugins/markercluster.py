@@ -42,4 +42,4 @@ class MarkerCluster(FoliumMarkerCluster):
                 "chunkProgress": FoliumJsCode,
             },
         )
-        super().__init__(*args, **{**options, **kwargs})
+        FoliumMarkerCluster.__init__(self, *args, **{**options, **kwargs})

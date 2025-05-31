@@ -9,8 +9,8 @@ from local_flight_map.api.opensky import (
     StateVector,
     FlightTrack,
     Waypoint,
-    BBox
 )
+from local_flight_map.api.base import BBox
 
 
 @pytest.fixture

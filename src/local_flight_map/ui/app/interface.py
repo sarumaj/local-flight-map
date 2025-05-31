@@ -22,7 +22,7 @@ import signal
 from types import FrameType
 from typing import Union, Dict, Any
 
-from ...api import ApiClient
+from ...api import ApiClients
 from .config import MapConfig
 from .layers import MapLayers
 from .data import DataSource
@@ -60,17 +60,21 @@ class MapInterface:
                 }
             )
 
-    def __init__(self, config: MapConfig, client: ApiClient):
+    def __init__(
+        self,
+        config: MapConfig,
+        clients: ApiClients
+    ):
         """
         Initialize the map interface.
 
         Args:
             config: The configuration for the map.
-            client: The API client for fetching aircraft data.
+            clients: The API clients for fetching aircraft data from ADSBExchange, HexDB, and OpenSky.
         """
         self._config = config
-        self._client = client
-        self._data = DataSource(client, config)
+        self._clients = clients
+        self._data = DataSource(clients, config)
         self._session_secret = secrets.token_urlsafe(32)
         self._map = None
         self._layers = None
@@ -246,8 +250,8 @@ class MapInterface:
             exc_val: The exception value that was raised, if any.
             exc_tb: The traceback of the exception, if any.
         """
-        if hasattr(self._client, '__aexit__'):
-            await self._client.__aexit__(exc_type, exc_val, exc_tb)
+        for client in self._clients:
+            await client.__aexit__(exc_type, exc_val, exc_tb)
 
     async def check_auth_status(self, request: Request) -> JSONResponse:
         """
@@ -346,7 +350,7 @@ class MapInterface:
                 if consent:
                     request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
                     return self._apply_cookie_consent(RedirectResponse(url="/", status_code=303))
-                
+
                 return RedirectResponse(url="/", status_code=303)
 
             # Handle POST request with JSON body

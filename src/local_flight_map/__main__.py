@@ -5,7 +5,7 @@ This module initializes and runs the API client and map interface.
 
 import asyncio
 
-from .api import ApiClient, ApiConfig
+from .api import AdsbExchangeClient, HexDbClient, OpenSkyClient, ApiConfig, ApiClients
 from .ui import MapInterface, MapConfig
 
 
@@ -17,10 +17,16 @@ async def amain():
     api_config = ApiConfig()
     map_config = MapConfig()
     async with (
-        ApiClient(api_config) as client,
+        AdsbExchangeClient(api_config) as adsbexchange_client,
+        HexDbClient(api_config) as hexdb_client,
+        OpenSkyClient(api_config) as opensky_client,
         MapInterface(
             config=map_config,
-            client=client
+            clients=ApiClients(
+                adsbexchange_client=adsbexchange_client,
+                hexdb_client=hexdb_client,
+                opensky_client=opensky_client
+            )
         ) as map_interface
     ):
         await map_interface.serve()
