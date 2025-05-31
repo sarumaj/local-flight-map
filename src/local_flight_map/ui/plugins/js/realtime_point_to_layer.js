@@ -276,10 +276,15 @@
           <tbody>`;
     for (var key in props) {
       if (key === "tags") continue;
+      let value = props[key];
+      // Convert objects to readable JSON strings
+      if (typeof value === 'object' && value !== null) {
+        value = JSON.stringify(value, null, 2);
+      }
       content += `
         <tr>
           <th>${key}</th>
-          <td>${props[key]}</td>
+          <td>${value}</td>
         </tr>`;
     }
     content += `

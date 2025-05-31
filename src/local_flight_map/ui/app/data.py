@@ -6,7 +6,7 @@ Handles aircraft data processing, enrichment, and conversion to GeoJSON format.
 from typing import Dict, Any, Union
 import asyncio
 
-from ...api import ApiClient, Location
+from ...api import ApiClients, Location
 from ...api.adsbexchange import AdsbExchangeResponse
 from ...api.opensky import States
 from .config import MapConfig, logger
@@ -18,24 +18,29 @@ class DataSource:
     Manages data retrieval from different providers and enriches it with additional information.
     """
 
-    def __init__(self, client: ApiClient, config: MapConfig):
+    def __init__(
+        self,
+        clients: ApiClients,
+        config: MapConfig
+    ):
         """
         Initialize the data source.
 
         Args:
-            client: The API client for fetching aircraft data.
+            clients: The API clients for fetching aircraft data from ADSBExchange, HexDB, and OpenSky.
             config: The map configuration containing data source settings.
         """
-        self._client = client
+        self._clients = clients
         self._config = config
         self._hexdb_semaphore = asyncio.Semaphore(5)  # Limit concurrent HexDB API calls
 
-    def _generate_tags(self, props: Dict[str, Any]) -> list[str]:
+    def _generate_tags(self, feature: Dict[str, Any], inplace: bool = False) -> list[str]:
         """
         Generate tags for aircraft properties based on their characteristics.
 
         Args:
-            props: The properties of the aircraft.
+            feature: The aircraft feature to generate tags for.
+            inplace: Whether to update the feature in place.
 
         Returns:
             A list of tags describing the aircraft's characteristics.
@@ -49,17 +54,19 @@ class DataSource:
             - Emergency status
             - Category
         """
+        properties = feature.get('properties', {}).copy()
+
         tags = []
-        tags.append(f"icao24:{props.get('icao24_code')}")
+        tags.append(f"icao24:{properties.get('icao24_code')}")
 
         optional_tags = {
-            'type': props.get('type'),
-            'callsign': props.get('callsign'),
-            'registration': props.get('registration'),
-            'altitude': props.get('baro_altitude') or props.get('geom_altitude'),
-            'speed': props.get('ground_speed'),
-            'emergency': props.get('emergency_status'),
-            'category': props.get('category'),
+            'type': properties.get('type'),
+            'callsign': properties.get('callsign'),
+            'registration': properties.get('registration'),
+            'altitude': properties.get('baro_altitude') or properties.get('geom_altitude'),
+            'speed': properties.get('ground_speed'),
+            'emergency': properties.get('emergency_status'),
+            'category': properties.get('category'),
         }
 
         for key, value in optional_tags.items():
@@ -96,7 +103,16 @@ class DataSource:
                     case _:
                         tags.append(f"{key}:{value}")
 
-        return tags
+        properties["tags"] = tags
+        if inplace:
+            feature["properties"] = properties
+            return feature
+
+        return {
+            "type": feature["type"],
+            "geometry": feature["geometry"],
+            "properties": properties
+        }
 
     async def _process_feature(self, feature: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -117,17 +133,17 @@ class DataSource:
                 icao24 = feature["properties"]["icao24_code"]
                 async with self._hexdb_semaphore:
                     for result in await asyncio.gather(
-                        self._client.get_aircraft_information_from_hexdb(icao24),
-                        self._client.get_route_information_from_hexdb(icao24),
+                        self._clients.hexdb_client.get_aircraft_information_from_hexdb(icao24),
+                        self._clients.hexdb_client.get_route_information_from_hexdb(icao24),
                         return_exceptions=True
                     ):
                         if isinstance(result, Exception):
                             logger.error(f"Error processing feature {icao24}: {str(result)}")
                             continue
                         if result:
-                            feature["properties"] = result.patch_geojson_properties(feature["properties"])
+                            result.enrich_geojson(feature, inplace=True)
 
-                feature["properties"]["tags"] = self._generate_tags(feature["properties"])
+                self._generate_tags(feature, inplace=True)
 
             except Exception as e:
                 icao24 = feature.get('properties', {}).get('icao24_code', 'unknown')
@@ -151,10 +167,10 @@ class DataSource:
         match self._config.data_provider:
             case 'adsbexchange':
                 args = (self._config.map_center, self._config.map_radius)
-                method = self._client.get_aircraft_from_adsbexchange_within_range
+                method = self._clients.adsbexchange_client.get_aircraft_from_adsbexchange_within_range
             case 'opensky':
                 args = (0, None, self._config.map_bbox)
-                method = self._client.get_states_from_opensky
+                method = self._clients.opensky_client.get_states_from_opensky
             case _:
                 raise ValueError(f"Invalid provider: {self._config.data_provider}")
 

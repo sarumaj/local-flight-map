@@ -6,8 +6,8 @@ from local_flight_map.api.adsbexchange import (
     AdsbExchangeConfig,
     AdsbExchangeResponse,
     AircraftProperties,
-    Location
 )
+from local_flight_map.api.base import Location
 
 
 @pytest.fixture
@@ -336,7 +336,7 @@ class TestAdsbExchangeClient:
 
                 # Verify the API call
                 mock_session.get.assert_called_once_with(
-                    "/v2/lat/40.6413/lon/-73.7781/dist/100"
+                    "/v2/lat/40.641300/lon/-73.778100/dist/100.000"
                 )
 
     @pytest.mark.asyncio

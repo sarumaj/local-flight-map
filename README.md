@@ -57,85 +57,91 @@ The application integrates data from multiple sources to provide comprehensive f
 ### API Client Usage
 
 ```python
-from local_flight_map.api import ApiClient, ApiConfig, Location, BBox
+from local_flight_map.api import (
+    ApiConfig,
+    AdsbExchangeClient, HexDbClient, OpenSkyClient,
+    Location, BBox
+)
 from datetime import datetime
 
-# Initialize the API client
+# Initialize the API configuration
 config = ApiConfig(
     ads_b_exchange_api_key="your_api_key",
-    opensky_username="your_username",
-    opensky_password="your_password"
+    opensky_client_id="your_client_id",
+    opensky_client_secret="your_client_secret"
 )
 
-async with ApiClient(config) as client:
-    # OpenSky Network API Examples
+# OpenSky Network API Examples
+async with OpenSkyClient(config) as opensky_client:
     # Get all aircraft states
-    states = await client.get_states_from_opensky()
+    states = await opensky_client.get_states_from_opensky()
     
     # Get states for specific aircraft
-    aircraft_states = await client.get_states_from_opensky(
+    aircraft_states = await opensky_client.get_states_from_opensky(
         icao24="icao24_code"
     )
     
     # Get states in a specific area
-    area_states = await client.get_states_from_opensky(
+    area_states = await opensky_client.get_states_from_opensky(
         bbox=BBox(min_lat=40.0, max_lat=41.0, min_lon=-74.0, max_lon=-73.0)
     )
     
     # Get states from own feeder
-    own_states = await client.get_my_states_from_opensky(
+    own_states = await opensky_client.get_my_states_from_opensky(
         serials=[1, 2, 3]  # Optional: filter by sensor serial numbers
     )
     
     # Get flight track for specific aircraft
-    track = await client.get_track_by_aircraft_from_opensky(
+    track = await opensky_client.get_track_by_aircraft_from_opensky(
         icao24="icao24_code",
         time_secs=datetime.now()
     )
 
-    # ADS-B Exchange API Examples
+# ADS-B Exchange API Examples
+async with AdsbExchangeClient(config) as adsbexchange_client:
     # Get aircraft by registration
-    aircraft_by_reg = await client.get_aircraft_from_adsbexchange_by_registration(
+    aircraft_by_reg = await adsbexchange_client.get_aircraft_from_adsbexchange_by_registration(
         registration="N12345"
     )
     
     # Get aircraft by ICAO24 address
-    aircraft_by_icao = await client.get_aircraft_from_adsbexchange_by_icao24(
+    aircraft_by_icao = await adsbexchange_client.get_aircraft_from_adsbexchange_by_icao24(
         icao24="icao24_code"
     )
     
     # Get aircraft by callsign
-    aircraft_by_callsign = await client.get_aircraft_from_adsbexchange_by_callsign(
+    aircraft_by_callsign = await adsbexchange_client.get_aircraft_from_adsbexchange_by_callsign(
         callsign="ABC123"
     )
     
     # Get aircraft by squawk code
-    aircraft_by_squawk = await client.get_aircraft_from_adsbexchange_by_squawk(
+    aircraft_by_squawk = await adsbexchange_client.get_aircraft_from_adsbexchange_by_squawk(
         squawk="7500"
     )
     
     # Get military aircraft
-    military_aircraft = await client.get_military_aircrafts_from_adsbexchange()
+    military_aircraft = await adsbexchange_client.get_military_aircrafts_from_adsbexchange()
     
     # Get aircraft within range
-    aircraft_in_range = await client.get_aircraft_from_adsbexchange_within_range(
+    aircraft_in_range = await adsbexchange_client.get_aircraft_from_adsbexchange_within_range(
         center=Location(latitude=40.7128, longitude=-74.0060),  # New York City
         radius=50  # radius in nautical miles (92.6 km)
     )
 
-    # HexDB API Examples
+# HexDB API Examples
+async with HexDbClient(config) as hexdb_client:
     # Get aircraft information
-    aircraft_info = await client.get_aircraft_information_from_hexdb(
+    aircraft_info = await hexdb_client.get_aircraft_information_from_hexdb(
         icao24="icao24_code"
     )
     
     # Get airport information
-    airport_info = await client.get_airport_information_from_hexdb(
+    airport_info = await hexdb_client.get_airport_information_from_hexdb(
         icao24="KJFK"  # ICAO airport code
     )
     
     # Get route information
-    route_info = await client.get_route_information_from_hexdb(
+    route_info = await hexdb_client.get_route_information_from_hexdb(
         callsign="ABC123"
     )
 ```
