@@ -6,8 +6,8 @@ from local_flight_map.api.adsbexchange import (
     AdsbExchangeConfig,
     AdsbExchangeResponse,
     AircraftProperties,
-    Location
 )
+from local_flight_map.api.base import Location
 
 
 @pytest.fixture
