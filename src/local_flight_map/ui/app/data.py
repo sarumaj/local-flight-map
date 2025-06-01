@@ -3,7 +3,7 @@ Data source module for the Local Flight Map application.
 Handles aircraft data processing, enrichment, and conversion to GeoJSON format.
 """
 
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Tuple, Optional
 import asyncio
 
 from ...api import ApiClients, Location
@@ -130,11 +130,12 @@ class DataSource:
 
         async with self._semaphore:
             try:
-                icao24 = feature["properties"]["icao24_code"]
+                icao24 = feature.get("properties", {}).get("icao24_code", "unknown")
+                callsign = feature.get("properties", {}).get("callsign", "unknown")
                 async with self._hexdb_semaphore:
                     for result in await asyncio.gather(
                         self._clients.hexdb_client.get_aircraft_information_from_hexdb(icao24),
-                        self._clients.hexdb_client.get_route_information_from_hexdb(icao24),
+                        self._clients.hexdb_client.get_route_information_from_hexdb(callsign),
                         return_exceptions=True
                     ):
                         if isinstance(result, Exception):
@@ -143,11 +144,27 @@ class DataSource:
                         if result:
                             result.enrich_geojson(feature, inplace=True)
 
+                    async def resolve_route(label: str, route: str) -> Tuple[str, Optional[Dict[str, Any]]]:
+                        airport = await self._clients.hexdb_client.get_airport_information_from_hexdb(route)
+                        return label, airport.to_geojson() if airport else None
+
+                    for label, airport in await asyncio.gather(
+                        *[
+                            resolve_route(label, route)
+                            for label, route in zip(
+                                ("origin", "destination"),
+                                feature.get("properties", {}).get("route", "-").split("-", 1)
+                            )
+                            if route
+                        ]
+                    ):
+                        for name, value in airport["properties"].items():
+                            feature["properties"][f"{label}_{name}"] = value
+
                 self._generate_tags(feature, inplace=True)
 
             except Exception as e:
-                icao24 = feature.get('properties', {}).get('icao24_code', 'unknown')
-                logger.error(f"Error processing feature {icao24}: {str(e)}")
+                logger.error(f"Error processing feature {icao24}/{callsign}: {str(e)}")
 
             finally:
                 return feature

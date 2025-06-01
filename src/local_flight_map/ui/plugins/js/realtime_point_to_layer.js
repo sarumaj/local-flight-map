@@ -270,26 +270,78 @@
               <td class="distance-info"></td>
             </tr>
           </tbody>
-        </table>
+        </table>`;
+
+    // Add origin section if there are origin properties
+    const originProps = Object.entries(props).filter(([key]) => key.startsWith('origin_'));
+    if (originProps.length > 0) {
+      content += `
+        <div class="section-title">Origin</div>
+        <table>
+          <tbody>`;
+      for (const [key, value] of originProps) {
+        const displayKey = key.replace('origin_', '');
+        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        content += `
+            <tr>
+              <th>${displayKey}</th>
+              <td>${displayValue}</td>
+            </tr>`;
+      }
+      content += `
+          </tbody>
+        </table>`;
+    }
+
+    // Add destination section if there are destination properties
+    const destinationProps = Object.entries(props).filter(([key]) => key.startsWith('destination_'));
+    if (destinationProps.length > 0) {
+      content += `
+        <div class="section-title">Destination</div>
+        <table>
+          <tbody>`;
+      for (const [key, value] of destinationProps) {
+        const displayKey = key.replace('destination_', '');
+        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        content += `
+            <tr>
+              <th>${displayKey}</th>
+              <td>${displayValue}</td>
+            </tr>`;
+      }
+      content += `
+          </tbody>
+        </table>`;
+    }
+
+    // Add remaining properties section
+    const remainingProps = Object.entries(props).filter(([key]) =>
+      !key.startsWith('origin_') &&
+      !key.startsWith('destination_') &&
+      key !== 'tags' &&
+      key !== 'latitude' &&
+      key !== 'longitude'
+    );
+
+    if (remainingProps.length > 0) {
+      content += `
         <div class="section-title">Properties</div>
         <table>
           <tbody>`;
-    for (var key in props) {
-      if (key === "tags") continue;
-      let value = props[key];
-      // Convert objects to readable JSON strings
-      if (typeof value === 'object' && value !== null) {
-        value = JSON.stringify(value, null, 2);
+      for (const [key, value] of remainingProps) {
+        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        content += `
+            <tr>
+              <th>${key}</th>
+              <td>${displayValue}</td>
+            </tr>`;
       }
       content += `
-        <tr>
-          <th>${key}</th>
-          <td>${value}</td>
-        </tr>`;
-    }
-    content += `
           </tbody>
-        </table>
+        </table>`;
+    }
+
+    content += `
       </div>`;
     return content;
   }
