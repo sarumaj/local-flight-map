@@ -235,6 +235,10 @@ class DraggableBBox {
               <th>Rotation Speed</th>
               <td>${this.rotationSpeed}°/s</td>
             </tr>
+            <tr>
+              <th>Data Provider</th>
+              <td>${this.config?.data_provider || 'Unknown'}</td>
+            </tr>
           </tbody>
         </table>
       </div>

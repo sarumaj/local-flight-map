@@ -303,7 +303,8 @@ class MapInterface:
                     "lat": self._config.map_center.latitude,
                     "lng": self._config.map_center.longitude
                 },
-                "radius": self._config.map_radius
+                "radius": self._config.map_radius,
+                "data_provider": self._config.data_provider
             },
             status_code=200
         )

@@ -31,8 +31,7 @@ RUN <<EOF cat > /entrypoint.sh
 # Execute the Python module with all arguments
 exec python -m local_flight_map \
   --app-port \${PORT:-5006} \
-  --app-dev-mode false \
-  --map-refresh-interval 1000 \
+  --app-dev-mode false
 EOF
 RUN chmod +x /entrypoint.sh
 
