@@ -5,6 +5,7 @@ Handles aircraft data processing, enrichment, and conversion to GeoJSON format.
 
 from typing import Dict, Any, Union, Tuple, Optional
 import asyncio
+import traceback
 
 from ...api import ApiClients, Location
 from ...api.adsbexchange import AdsbExchangeResponse
@@ -64,13 +65,41 @@ class DataSource:
             'callsign': properties.get('callsign'),
             'registration': properties.get('registration'),
             'altitude': properties.get('baro_altitude') or properties.get('geom_altitude'),
-            'speed': properties.get('ground_speed'),
+            'speed': properties.get('ground_speed') or properties.get('velocity'),
             'emergency': properties.get('emergency_status'),
-            'category': properties.get('category'),
+            'category': {
+                0: 'no_information',
+                1: 'no_adsb_emitter_category_information',
+                2: 'light',
+                3: 'small',
+                4: 'large',
+                5: 'high_vortex_large',
+                6: 'heavy',
+                7: 'high_performance',
+                8: 'rotorcraft',
+                9: 'glider_sailplane',
+                10: 'lighter_than_air',
+                11: 'parachutist_skydiver',
+                12: 'ultralight_hangglider_paraglider',
+                13: 'reserved',
+                14: 'unmanned_aerial_vehicle',
+                15: 'space_transatmospheric_vehicle',
+                16: 'surface_vehicle_emergency_vehicle',
+                17: 'surface_vehicle_service_vehicle',
+                18: 'point_obstacle_includes_tethered_balloons',
+                19: 'cluster_obstacle',
+                20: 'line_obstacle',
+            }.get(properties.get('category')),
+            "position_source": {
+                0: 'adsb',
+                1: 'asterix',
+                2: 'mlat',
+                3: 'flarm',
+            }.get(properties.get('position_source')),
         }
 
         for key, value in optional_tags.items():
-            if value:
+            if value is not None:
                 match key:
                     case 'altitude':
                         try:
@@ -99,6 +128,14 @@ class DataSource:
                             tags.append('speed:medium')
                         else:
                             tags.append('speed:fast')
+
+                    case 'category':
+                        properties["category"] = value
+                        tags.append(f"category:{value}")
+
+                    case 'position_source':
+                        properties["position_source"] = value
+                        tags.append(f"position_source:{value}")
 
                     case _:
                         tags.append(f"{key}:{value}")
@@ -158,13 +195,19 @@ class DataSource:
                             if route
                         ]
                     ):
+                        if not airport:
+                            logger.error(f"No airport found for {label}")
+                            continue
                         for name, value in airport["properties"].items():
                             feature["properties"][f"{label}_{name}"] = value
 
                 self._generate_tags(feature, inplace=True)
 
             except Exception as e:
-                logger.error(f"Error processing feature {icao24}/{callsign}: {str(e)}")
+                logger.error(
+                    f"Error processing feature icao24:{icao24} callsign:{callsign}: "
+                    f"{str(e)}\n{traceback.format_exc()}"
+                )
 
             finally:
                 return feature
@@ -188,6 +231,9 @@ class DataSource:
             case 'opensky':
                 args = (0, None, self._config.map_bbox)
                 method = self._clients.opensky_client.get_states_from_opensky
+            case 'opensky_personal':
+                args = (0, None, None)
+                method = self._clients.opensky_client.get_my_states_from_opensky
             case _:
                 raise ValueError(f"Invalid provider: {self._config.data_provider}")
 

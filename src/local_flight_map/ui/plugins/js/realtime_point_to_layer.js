@@ -234,6 +234,18 @@
   }
 
   /**
+   * Convert snake case to title case with spaces
+   * @param {string} str - The string to convert
+   * @returns {string} The converted string
+   */
+  function snakeToTitleCase(str) {
+    return str
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
    * Create popup content for the marker
    * @param {Object} props - Aircraft properties
    * @returns {string} HTML content for the popup
@@ -248,7 +260,7 @@
       const [key, value] = tag.split(':');
       return `
               <span class="tag">
-                <span class="tag-key">${key}</span>
+                <span class="tag-key">${snakeToTitleCase(key)}</span>
                 <span class="tag-value">${value}</span>
               </span>
             `;
@@ -280,7 +292,7 @@
         <table>
           <tbody>`;
       for (const [key, value] of originProps) {
-        const displayKey = key.replace('origin_', '');
+        const displayKey = snakeToTitleCase(key.replace('origin_', ''));
         const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
         content += `
             <tr>
@@ -301,7 +313,7 @@
         <table>
           <tbody>`;
       for (const [key, value] of destinationProps) {
-        const displayKey = key.replace('destination_', '');
+        const displayKey = snakeToTitleCase(key.replace('destination_', ''));
         const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
         content += `
             <tr>
@@ -329,10 +341,11 @@
         <table>
           <tbody>`;
       for (const [key, value] of remainingProps) {
+        const displayKey = snakeToTitleCase(key);
         const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
         content += `
             <tr>
-              <th>${key}</th>
+              <th>${displayKey}</th>
               <td>${displayValue}</td>
             </tr>`;
       }

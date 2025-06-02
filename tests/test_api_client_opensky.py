@@ -114,7 +114,7 @@ class TestOpenSkyClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with(
                     "/api/states/all",
-                    params={}
+                    params={'extended': 1}
                 )
 
     @pytest.mark.asyncio
@@ -154,6 +154,7 @@ class TestOpenSkyClient:
                 mock_session.get.assert_called_once_with(
                     "/api/states/all",
                     params={
+                        'extended': 1,
                         'time': int(time.timestamp()),
                         'icao24': 'a83547,b12345',
                         'lamax': 41.0,

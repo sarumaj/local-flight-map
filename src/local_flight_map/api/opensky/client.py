@@ -120,7 +120,7 @@ class OpenSkyClient(BaseClient):
         if bbox:
             bbox.validate()
 
-        params = {}
+        params = {'extended': 1}
         if time_secs:
             if isinstance(time_secs, datetime):
                 time_secs = int(time_secs.timestamp())

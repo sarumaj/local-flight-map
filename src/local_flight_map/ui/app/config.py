@@ -29,7 +29,7 @@ class MapConfig(BaseSettings):
         map_refresh_interval: The interval between map updates in milliseconds.
         data_batch_size: The number of aircraft to process in each batch.
         data_max_threads: The maximum number of concurrent threads for data processing.
-        data_provider: The source of aircraft data (adsbexchange or opensky).
+        data_provider: The source of aircraft data (adsbexchange, opensky, opensky_personal).
         app_port: The port number for the web application.
         app_dev_mode: Whether to run in development mode.
     """
@@ -66,7 +66,7 @@ class MapConfig(BaseSettings):
         default=10,
         description="The maximum number of threads to use for the data"
     )
-    data_provider: Literal["adsbexchange", "opensky"] = Field(
+    data_provider: Literal["adsbexchange", "opensky", "opensky_personal"] = Field(
         default="adsbexchange",
         description="The provider of the data",
     )

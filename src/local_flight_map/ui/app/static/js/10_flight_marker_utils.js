@@ -113,7 +113,7 @@ const FlightMarkerUtils = {
     }
 
     const altitude = props.baro_altitude || props.geom_altitude || 0;
-    const groundSpeed = props.ground_speed || 0;
+    const groundSpeed = props.ground_speed || props.velocity || 0;
     const { vsColor, vsSymbol } = this.calculateVerticalSpeedIndicator(props);
     const flightLevel = altitude === 'ground' ? 0 : Math.round(altitude / 100);
 

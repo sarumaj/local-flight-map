@@ -32,7 +32,7 @@ RUN <<EOF cat > /entrypoint.sh
 exec python -m local_flight_map \
   --app-port \${PORT:-5006} \
   --app-dev-mode false \
-  --map-refresh-interval 1000
+  --map-refresh-interval 1000 \
 EOF
 RUN chmod +x /entrypoint.sh
 
