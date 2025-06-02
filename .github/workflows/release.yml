@@ -78,3 +78,10 @@ jobs:
           generate_release_notes: "true"
           make_latest: "true"
           prerelease: "false"
+
+      - name: Trigger Deploy Workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: deploy-trigger
+          client-payload: '{"ref": "${{ github.ref }}"}'

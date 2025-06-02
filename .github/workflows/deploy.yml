@@ -1,13 +1,15 @@
 name: deploy_to_heroku
 on:
-  push:
-    tags:
-      - "v*"
+  repository_dispatch:
+    types: [deploy-trigger]
 permissions:
   contents: write
 
 jobs:
   build_and_release:
+    concurrency:
+      group: deploy-${{ github.event.client_payload.ref }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
