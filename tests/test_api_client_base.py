@@ -187,7 +187,8 @@ class TestBaseClient:
         mock_raise_for_status = Mock(return_value=None)
         mock_response = type('MockResponse', (), {
             'status': 404,
-            'raise_for_status': mock_raise_for_status
+            'raise_for_status': mock_raise_for_status,
+            'content_type': "application/json"
         })
         result = await client._handle_response(mock_response)
         assert result is None
@@ -201,7 +202,8 @@ class TestBaseClient:
         mock_response = type('MockResponse', (), {
             'status': 200,
             'raise_for_status': mock_raise_for_status,
-            'json': mock_json
+            'json': mock_json,
+            'content_type': "application/json"
         })
         result = await client._handle_response(mock_response)
         assert result == {'data': 'test'}

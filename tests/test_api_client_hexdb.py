@@ -40,6 +40,7 @@ class TestHexDbClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -83,6 +84,7 @@ class TestHexDbClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -121,6 +123,7 @@ class TestHexDbClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -148,6 +151,7 @@ class TestHexDbClient:
         mock_response.status = 404
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -167,6 +171,7 @@ class TestHexDbClient:
         mock_response.status = 404
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -185,6 +190,7 @@ class TestHexDbClient:
         mock_response.status = 404
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -209,6 +215,7 @@ class TestHexDbClient:
             message="Server Error"
         ))
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(hexdb_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response

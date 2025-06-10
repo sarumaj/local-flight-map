@@ -9,8 +9,9 @@ import traceback
 
 from ...api import ApiClients, Location
 from ...api.adsbexchange import AdsbExchangeResponse
+from ...api.adsbexchange.feed import AdsbExchangeFeederResponse
 from ...api.opensky import States
-from .config import MapConfig, logger
+from .config import MapConfig, logger, DataProvider
 
 
 class DataSource:
@@ -225,19 +226,27 @@ class DataSource:
             ValueError: If the configured data provider is invalid.
         """
         match self._config.data_provider:
-            case 'adsbexchange':
+            case DataProvider.ADSBEXCHANGE.value:
                 args = (self._config.map_center, self._config.map_radius)
                 method = self._clients.adsbexchange_client.get_aircraft_from_adsbexchange_within_range
-            case 'opensky':
+            case DataProvider.ADSBEXCHANGE_FEED.value:
+                args = tuple()
+                method = self._clients.adsbexchange_feed_client.get_aircraft_from_adsbexchange_feeder
+            case DataProvider.OPENSKY.value:
                 args = (0, None, self._config.map_bbox)
                 method = self._clients.opensky_client.get_states_from_opensky
-            case 'opensky_personal':
+            case DataProvider.OPENSKY_PERSONAL.value:
                 args = (0, None, None)
                 method = self._clients.opensky_client.get_my_states_from_opensky
             case _:
                 raise ValueError(f"Invalid provider: {self._config.data_provider}")
 
-        aircrafts: Union[AdsbExchangeResponse, States, None] = await method(*args)
+        aircrafts: Union[
+            AdsbExchangeResponse,
+            States,
+            AdsbExchangeFeederResponse,
+            None
+        ] = await method(*args)
         if aircrafts is None:
             logger.error(
                 f"No aircrafts found for {self._config.map_center} and {self._config.map_radius} "

@@ -15,6 +15,10 @@ class AdsbExchangeConfig(BaseConfig):
         default="https://adsbexchange-com1.p.rapidapi.com/",
         description="The base URL for the ADSB Exchange API"
     )
+    adsbexchange_feeder_url: str = Field(
+        default="https://globe.adsbexchange.com/",
+        description="The base URL for the ADSB Exchange feeder"
+    )
     adsbexchange_api_key: str = Field(
         default="",
         description="The API key for the ADSB Exchange API",

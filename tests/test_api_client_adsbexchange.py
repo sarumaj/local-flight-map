@@ -102,6 +102,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -188,6 +189,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -221,6 +223,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -254,6 +257,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -286,6 +290,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -317,6 +322,7 @@ class TestAdsbExchangeClient:
         mock_response.status = 200
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -345,6 +351,7 @@ class TestAdsbExchangeClient:
         mock_response = AsyncMock()
         mock_response.status = 404
         mock_response.raise_for_status = Mock(return_value=None)
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -368,6 +375,7 @@ class TestAdsbExchangeClient:
             status=500,
             message="Server Error"
         ))
+        mock_response.content_type = "application/json"
 
         with patch.object(adsbexchange_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response

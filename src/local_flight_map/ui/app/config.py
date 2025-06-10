@@ -7,12 +7,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from typing import Literal
 import logging
+from enum import Enum
 
 from ...api.base import Location, BBox
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("local-flight-map")
+
+
+class DataProvider(Enum):
+    ADSBEXCHANGE = "adsbexchange"
+    ADSBEXCHANGE_FEED = "adsbexchange_feed"
+    OPENSKY = "opensky"
+    OPENSKY_PERSONAL = "opensky_personal"
 
 
 class MapConfig(BaseSettings):
@@ -66,8 +74,13 @@ class MapConfig(BaseSettings):
         default=10,
         description="The maximum number of threads to use for the data"
     )
-    data_provider: Literal["adsbexchange", "opensky", "opensky_personal"] = Field(
-        default="adsbexchange",
+    data_provider: Literal[
+        DataProvider.ADSBEXCHANGE.value,
+        DataProvider.ADSBEXCHANGE_FEED.value,
+        DataProvider.OPENSKY.value,
+        DataProvider.OPENSKY_PERSONAL.value
+    ] = Field(
+        default=DataProvider.ADSBEXCHANGE.value,
         description="The provider of the data",
     )
 

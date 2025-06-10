@@ -72,4 +72,4 @@ class BaseClient:
             return None
 
         response.raise_for_status()
-        return await response.json() or None
+        return await response.json(content_type=response.content_type) or None

@@ -76,7 +76,7 @@ class TestOpenSkyClient:
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock()
+        mock_response.content_type = "application/json"
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -132,7 +132,7 @@ class TestOpenSkyClient:
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock()
+        mock_response.content_type = "application/json"
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -179,7 +179,7 @@ class TestOpenSkyClient:
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock()
+        mock_response.content_type = "application/json"
 
         with patch.object(authenticated_opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -233,6 +233,7 @@ class TestOpenSkyClient:
         mock_response.json = AsyncMock(return_value=mock_data)
         mock_raise_for_status = Mock(return_value=None)
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
@@ -299,6 +300,7 @@ class TestOpenSkyClient:
             message="Server Error"
         ))
         mock_response.raise_for_status = mock_raise_for_status
+        mock_response.content_type = "application/json"
 
         with patch.object(opensky_client, '_session') as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
