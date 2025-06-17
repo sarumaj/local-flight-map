@@ -168,8 +168,9 @@ class DataSource:
 
         async with self._semaphore:
             try:
-                icao24 = feature.get("properties", {}).get("icao24_code", "unknown")
-                callsign = feature.get("properties", {}).get("callsign", "unknown")
+                properties = feature.get("properties", {}) or {}
+                icao24 = properties.get("icao24_code", "unknown") or "unknown"
+                callsign = properties.get("callsign", "unknown") or "unknown"
                 async with self._hexdb_semaphore:
                     for result in await asyncio.gather(
                         self._clients.hexdb_client.get_aircraft_information_from_hexdb(icao24),

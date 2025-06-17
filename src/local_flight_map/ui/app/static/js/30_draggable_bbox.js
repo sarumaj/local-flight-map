@@ -548,6 +548,28 @@ class DraggableBBox {
   }
 
   /**
+   * Check if the bounding box is smaller than the visible map area
+   * @returns {boolean} True if bbox is smaller than visible area in both dimensions
+   */
+  isBBoxSmallerThanVisibleArea() {
+    if (!this.rectangle || !this.map) {
+      return false;
+    }
+
+    const visibleBounds = this.map.getBounds();
+    const bboxBounds = this.rectangle.getBounds();
+
+    // Compare both width and height independently
+    const visibleHeight = visibleBounds.getNorth() - visibleBounds.getSouth();
+    const visibleWidth = visibleBounds.getEast() - visibleBounds.getWest();
+    const bboxHeight = bboxBounds.getNorth() - bboxBounds.getSouth();
+    const bboxWidth = bboxBounds.getEast() - bboxBounds.getWest();
+
+    // Return true only if bbox is smaller in both dimensions
+    return bboxHeight < visibleHeight && bboxWidth < visibleWidth;
+  }
+
+  /**
    * Unified handler for drag start events (mouse and touch)
    * @param {L.LeafletMouseEvent|L.LeafletTouchEvent} e - The event
    */
@@ -559,6 +581,12 @@ class DraggableBBox {
     }
 
     try {
+      // Check if bbox is smaller than visible area
+      if (!this.isBBoxSmallerThanVisibleArea()) {
+        // Allow event propagation to map if bbox is larger
+        return;
+      }
+
       // Prevent event propagation to avoid triggering radar marker events
       if (e.originalEvent) {
         e.originalEvent.stopPropagation();
@@ -589,7 +617,7 @@ class DraggableBBox {
    * @param {L.LeafletMouseEvent|L.LeafletTouchEvent} e - The event
    */
   onDragMove(e) {
-    if (!this.isDragging) {
+    if (!this.isDragging || !this.isBBoxSmallerThanVisibleArea()) {
       return;
     }
 
@@ -637,7 +665,7 @@ class DraggableBBox {
    * @param {L.LeafletMouseEvent|L.LeafletTouchEvent} e - The event
    */
   onDragEnd(e) {
-    if (!this.isDragging) {
+    if (!this.isDragging || !this.isBBoxSmallerThanVisibleArea()) {
       return;
     }
 
