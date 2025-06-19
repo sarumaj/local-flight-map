@@ -323,7 +323,7 @@ class MapInterface:
                 return MapInterface.EmptyFeatureCollection()
             return JSONResponse(
                 content=data,
-                status_code=200
+                status_code=200,
             )
         except Exception as e:
             logger.error(f"Error getting aircraft data: {e}", exc_info=True)

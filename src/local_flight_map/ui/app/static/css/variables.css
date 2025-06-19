@@ -7,6 +7,8 @@
   --color-border: #dee2e6;
   --color-overlay: rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
   --border-radius-sm: 3px;
   --border-radius-md: 4px;
   --border-radius-lg: 6px;

@@ -1,6 +1,7 @@
 import aiohttp
 import logging
 from datetime import datetime
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -17,7 +18,8 @@ class OAuth2AuthMiddleware:
         auth_url: str,
         client_id: str,
         client_secret: str,
-        grant_type: str = "client_credentials"
+        grant_type: str = "client_credentials",
+        timeout: Optional[aiohttp.ClientTimeout] = None
     ):
         """
         Initialize the OAuth2 authentication middleware.
@@ -27,11 +29,13 @@ class OAuth2AuthMiddleware:
             client_id: The OAuth2 client ID.
             client_secret: The OAuth2 client secret.
             grant_type: The OAuth2 grant type. Defaults to "client_credentials".
+            timeout: Optional timeout configuration for authentication requests.
         """
         self._auth_url = auth_url
         self._client_id = client_id
         self._client_secret = client_secret
         self._grant_type = grant_type
+        self._timeout = timeout
         self._access_token = None
         self._token_expiry = 0
         self._logger = logging.getLogger("local_flight_map.api.OAuth2AuthMiddleware")
@@ -56,8 +60,13 @@ class OAuth2AuthMiddleware:
         if self._access_token and now < self._token_expiry:
             return self._access_token
 
+        # Create session with timeout if provided
+        session_kwargs = {}
+        if self._timeout:
+            session_kwargs['timeout'] = self._timeout
+
         async with (
-            aiohttp.ClientSession() as session,
+            aiohttp.ClientSession(**session_kwargs) as session,
             session.post(
                 self._auth_url,
                 data={

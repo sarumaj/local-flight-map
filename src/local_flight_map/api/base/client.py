@@ -23,7 +23,22 @@ class BaseClient:
         """
         self._config = config or BaseConfig()
         self._session_params = session_params
-        self._session = aiohttp.ClientSession(**self._session_params)
+
+        # Create timeout configuration
+        timeout = aiohttp.ClientTimeout(
+            connect=self._config.http_connect_timeout,
+            total=self._config.http_total_timeout,
+            sock_connect=self._config.http_connect_timeout,
+            sock_read=self._config.http_total_timeout
+        )
+
+        # Update session parameters with timeout
+        session_params_with_timeout = {
+            'timeout': timeout,
+            **session_params
+        }
+
+        self._session = aiohttp.ClientSession(**session_params_with_timeout)
 
     async def close(self):
         """
@@ -55,21 +70,25 @@ class BaseClient:
         _ = (exc_type, exc_val, exc_tb)
         await self.close()
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> Optional[Any]:
+    async def _handle_response(self, response: aiohttp.ClientResponse) -> Optional[Dict]:
         """
-        Handle an HTTP response from the API.
+        Handle HTTP response and return JSON data if successful.
 
         Args:
-            response: The HTTP response to handle
+            response: The aiohttp response object.
 
         Returns:
-            The parsed JSON response, or None if the response was 404
+            Optional[Dict]: The JSON response data if successful, None otherwise.
 
         Raises:
-            aiohttp.ClientError: If the response indicates an error
+            aiohttp.ClientResponseError: If the response indicates an error.
         """
         if response.status == 404:
             return None
 
         response.raise_for_status()
-        return await response.json(content_type=response.content_type) or None
+
+        # Pass the content type to the json method to avoid errors
+        # when the content type is not application/json
+        # (opensky feeder returns text/html, even though it is JSON)
+        return await response.json(content_type=response.content_type)

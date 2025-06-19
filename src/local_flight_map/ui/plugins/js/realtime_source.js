@@ -67,6 +67,74 @@
   }
 
   /**
+   * Show error message overlay
+   * @param {string} message - The error message to display
+   */
+  function showErrorOverlay(message) {
+    // Remove existing error overlay if present
+    const existingError = document.querySelector('.error-overlay');
+    if (existingError) {
+      existingError.remove();
+    }
+
+    // Create error overlay
+    const errorOverlay = document.createElement('div');
+    errorOverlay.className = 'error-overlay';
+
+    const errorContent = document.createElement('div');
+    errorContent.className = 'error-content';
+
+    const errorIcon = document.createElement('div');
+    errorIcon.className = 'error-icon';
+    errorIcon.innerHTML = '⚠️';
+
+    const errorTitle = document.createElement('h2');
+    errorTitle.className = 'error-title';
+    errorTitle.textContent = 'Service Unavailable';
+
+    const errorMessage = document.createElement('p');
+    errorMessage.className = 'error-message';
+    errorMessage.textContent = message;
+
+    const errorButtons = document.createElement('div');
+    errorButtons.className = 'error-buttons';
+
+    const retryButton = document.createElement('button');
+    retryButton.className = 'error-button retry';
+    retryButton.textContent = 'Retry';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'error-button close';
+    closeButton.textContent = 'Close';
+
+    const githubButton = document.createElement('button');
+    githubButton.className = 'error-button github';
+    githubButton.textContent = 'Open GitHub Issue';
+    githubButton.onclick = () => {
+      window.open('https://github.com/sarumaj/local-flight-map/issues', '_blank');
+    };
+
+    retryButton.onclick = () => {
+      errorOverlay.remove();
+      fetchData();
+    };
+
+    closeButton.onclick = () => {
+      errorOverlay.remove();
+    };
+
+    errorButtons.appendChild(retryButton);
+    errorButtons.appendChild(closeButton);
+    errorButtons.appendChild(githubButton);
+    errorContent.appendChild(errorIcon);
+    errorContent.appendChild(errorTitle);
+    errorContent.appendChild(errorMessage);
+    errorContent.appendChild(errorButtons);
+    errorOverlay.appendChild(errorContent);
+    document.body.appendChild(errorOverlay);
+  }
+
+  /**
    * Fetch aircraft data from the server
    * Makes a GET request to the /service/aircrafts endpoint and processes the response
    */
@@ -99,6 +167,13 @@
       credentials: 'include'
     })
       .then((response) => {
+        // Check for X-Status-Code header first
+        const statusCode = response.headers.get('X-Status-Code');
+
+        if (statusCode === '500') {
+          throw new Error('BACKEND_SERVICE_UNAVAILABLE');
+        }
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -116,7 +191,13 @@
         if (spinnerTimeout) {
           hideSpinner();
         }
-        errorHandler(error);
+
+        // Handle specific backend service unavailable error
+        if (error.message === 'BACKEND_SERVICE_UNAVAILABLE') {
+          showErrorOverlay('The backend service providing the real-time data is not available. Please try again later or contact the developer by opening an issue on GitHub if the problem persists.');
+        } else {
+          errorHandler(error);
+        }
       });
   }
 

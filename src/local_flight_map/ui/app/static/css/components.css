@@ -34,6 +34,114 @@
   }
 }
 
+/* Error overlay styles */
+.error-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: calc(var(--z-index-spinner) + 2);
+  backdrop-filter: blur(4px);
+}
+
+.error-overlay .error-content {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--border-radius-lg);
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.error-overlay .error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.error-overlay .error-title {
+  margin: 0 0 1rem 0;
+  color: #d32f2f;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.error-overlay .error-message {
+  margin: 0 0 1.5rem 0;
+  color: var(--color-text);
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.error-overlay .error-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.error-overlay .error-button {
+  padding: 0.75rem 1.5rem;
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.error-overlay .error-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.error-overlay .error-button.retry {
+  background: var(--color-primary);
+}
+
+.error-overlay .error-button.retry:hover {
+  background: #1565c0;
+}
+
+.error-overlay .error-button.close {
+  background: #757575;
+}
+
+.error-overlay .error-button.close:hover {
+  background: #616161;
+}
+
+.error-overlay .error-button.github {
+  background: #24292e;
+}
+
+.error-overlay .error-button.github:hover {
+  background: #1b1f23;
+}
+
 /* Flight info styles */
 .flight-info {
   position: absolute;

@@ -3,6 +3,7 @@ from async_lru import alru_cache
 from datetime import datetime
 from collections import defaultdict
 import asyncio
+import aiohttp
 
 from ..base import BaseClient, BBox, OAuth2AuthMiddleware
 from .config import OpenSkyConfig
@@ -33,6 +34,14 @@ class OpenSkyClient(BaseClient):
                    default configuration will be used.
         """
         config = config or OpenSkyConfig()
+
+        timeout = aiohttp.ClientTimeout(
+            connect=config.http_connect_timeout,
+            total=config.http_total_timeout,
+            sock_connect=config.http_connect_timeout,
+            sock_read=config.http_total_timeout
+        )
+
         BaseClient.__init__(
             self,
             config=config,
@@ -42,7 +51,8 @@ class OpenSkyClient(BaseClient):
                     auth_url=config.opensky_auth_url,
                     client_id=config.opensky_client_id,
                     client_secret=config.opensky_client_secret,
-                    grant_type="client_credentials"
+                    grant_type="client_credentials",
+                    timeout=timeout
                 ),
             )
         )
