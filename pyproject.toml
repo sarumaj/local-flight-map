@@ -18,17 +18,17 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 dependencies = [
-    "aiohttp==3.12.2",
-    "asyncio==3.4.3",
+    "aiohttp==3.12.15",
+    "asyncio==4.0.0",
     "async-lru==2.0.5",
-    "fastapi==0.115.12",
-    "folium==0.19.6",
+    "fastapi==0.116.1",
+    "folium==0.20.0",
     "itsdangerous==2.2.0",
     "nest-asyncio==1.6.0",
-    "orjson==3.10.18",
-    "pydantic==2.11.4",
-    "pydantic-settings==2.9.1",
-    "uvicorn==0.34.2"
+    "orjson==3.11.2",
+    "pydantic==2.11.7",
+    "pydantic-settings==2.10.1",
+    "uvicorn==0.35.0"
 ]
 
 [project.scripts]
@@ -36,8 +36,8 @@ local-flight-map = "local_flight_map.__main__:main"
 
 [project.optional-dependencies]
 test = [
-    "pytest==8.0.0",
-    "pytest-asyncio==0.23.5"
+    "pytest==8.4.1",
+    "pytest-asyncio==1.1.0"
 ]
 
 [tool.setuptools.packages.find]

@@ -11,33 +11,35 @@
   document.addEventListener("DOMContentLoaded", function () {
     const mapElement = document.querySelector(".folium-map");
     if (mapElement) {
-      window.dispatchEvent(new CustomEvent("mapElementReady", {
-        detail: { mapId: mapElement.id }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("mapElementReady", {
+          detail: { mapId: mapElement.id },
+        })
+      );
     }
 
     // Add social media links
-    const socialLinks = document.createElement('div');
-    socialLinks.className = 'social-links';
+    const socialLinks = document.createElement("div");
+    socialLinks.className = "social-links";
 
     // GitHub link
     for (const link of [
       {
-        src: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-        href: 'https://github.com/sarumaj/local-flight-map',
-        alt: 'GitHub'
+        src: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
+        href: "https://github.com/sarumaj/local-flight-map",
+        alt: "GitHub",
       },
       {
-        src: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg',
-        href: 'https://www.linkedin.com/in/dawid-ciepiela/',
-        alt: 'LinkedIn'
-      }
+        src: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/linkedin/linkedin-original.svg",
+        href: "https://www.linkedin.com/in/dawid-ciepiela/",
+        alt: "LinkedIn",
+      },
     ]) {
-      const linkElement = document.createElement('a');
+      const linkElement = document.createElement("a");
       linkElement.href = link.href;
-      linkElement.className = 'social-link';
-      linkElement.target = '_blank';
-      linkElement.rel = 'noopener noreferrer';
+      linkElement.className = "social-link";
+      linkElement.target = "_blank";
+      linkElement.rel = "noopener noreferrer";
       linkElement.innerHTML = `<img src="${link.src}" alt="${link.alt}">`;
       socialLinks.appendChild(linkElement);
     }
@@ -62,7 +64,7 @@
    */
   async function checkSessionState() {
     try {
-      const response = await fetch('/auth/status');
+      const response = await fetch("/auth/status");
       if (response.ok) {
         const data = await response.json();
         // Only return true if both authenticated and has cookie consent
@@ -70,7 +72,7 @@
       }
       return false;
     } catch (error) {
-      console.error('Error checking session state:', error);
+      console.error("Error checking session state:", error);
       return false;
     }
   }
@@ -83,38 +85,39 @@
   async function showCookieConsent() {
     const isAuthenticated = await checkSessionState();
     if (!isAuthenticated) {
-      const modalOverlay = document.createElement('div');
-      modalOverlay.id = 'cookie-consent-modal';
+      const modalOverlay = document.createElement("div");
+      modalOverlay.id = "cookie-consent-modal";
 
-      const modalContent = document.createElement('div');
-      modalContent.className = 'modal-content';
+      const modalContent = document.createElement("div");
+      modalContent.className = "modal-content";
 
-      const title = document.createElement('h2');
-      title.textContent = 'Cookie Consent Required';
+      const title = document.createElement("h2");
+      title.textContent = "Cookie Consent Required";
 
-      const message = document.createElement('p');
-      message.textContent = 'This flight map application requires cookies to function properly. ' +
-        'Without cookies, the application cannot maintain your session and provide the necessary functionality.';
+      const message = document.createElement("p");
+      message.textContent =
+        "This flight map application requires cookies to function properly. " +
+        "Without cookies, the application cannot maintain your session and provide the necessary functionality.";
 
-      const buttonContainer = document.createElement('div');
-      buttonContainer.className = 'button-container';
+      const buttonContainer = document.createElement("div");
+      buttonContainer.className = "button-container";
 
-      const acceptButton = document.createElement('button');
-      acceptButton.textContent = 'Accept Cookies';
-      acceptButton.className = 'accept-button';
+      const acceptButton = document.createElement("button");
+      acceptButton.textContent = "Accept Cookies";
+      acceptButton.className = "accept-button";
 
-      const declineButton = document.createElement('button');
-      declineButton.textContent = 'Decline';
-      declineButton.className = 'decline-button';
+      const declineButton = document.createElement("button");
+      declineButton.textContent = "Decline";
+      declineButton.className = "decline-button";
 
       acceptButton.onclick = async () => {
         try {
-          const response = await fetch('/auth/cookie-consent', {
-            method: 'POST',
+          const response = await fetch("/auth/cookie-consent", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify({ consent: true })
+            body: JSON.stringify({ consent: true }),
           });
 
           if (response.ok) {
@@ -122,14 +125,24 @@
             window.location.reload();
           }
         } catch (error) {
-          console.error('Error setting cookie consent:', error);
+          console.error("Error setting cookie consent:", error);
         }
       };
 
       declineButton.onclick = () => {
-        if (confirm('Are you sure you want to decline cookies? The flight map will not work without cookies enabled.')) {
+        if (
+          confirm(
+            "Are you sure you want to decline cookies? The flight map will not work without cookies enabled."
+          )
+        ) {
           modalOverlay.remove();
+          var currentURL = window.location.href;
           window.history.back();
+          setTimeout(function () {
+            if (currentURL === window.location.href) {
+              window.close();
+            }
+          }, 100);
         }
       };
 
@@ -145,7 +158,5 @@
   }
 
   // Show cookie consent banner when the page loads
-  document.addEventListener('DOMContentLoaded', showCookieConsent);
+  document.addEventListener("DOMContentLoaded", showCookieConsent);
 })();
-
-

@@ -9,12 +9,12 @@ class DraggableBBox {
    */
   constructor(map, initialBounds) {
     if (!map || !map.getBounds) {
-      console.error('Invalid map instance provided to DraggableBBox');
-      throw new Error('Invalid map instance');
+      console.error("Invalid map instance provided to DraggableBBox");
+      throw new Error("Invalid map instance");
     }
     if (!initialBounds || !initialBounds.getNorth) {
-      console.error('Invalid initial bounds provided to DraggableBBox');
-      throw new Error('Invalid initial bounds');
+      console.error("Invalid initial bounds provided to DraggableBBox");
+      throw new Error("Invalid initial bounds");
     }
 
     this.map = map;
@@ -34,7 +34,7 @@ class DraggableBBox {
     this.boundEvents = {
       start: this.onDragStart.bind(this),
       move: this.onDragMove.bind(this),
-      end: this.onDragEnd.bind(this)
+      end: this.onDragEnd.bind(this),
     };
 
     this.initialize();
@@ -46,36 +46,38 @@ class DraggableBBox {
   initialize() {
     try {
       this.rectangle = L.rectangle(this.bounds, {
-        color: 'red',
+        color: "red",
         weight: 2,
         opacity: 0.7,
         fillOpacity: 0.1,
-        className: 'draggable-rectangle',
-        pane: 'shadowPane' // Use shadowPane for background elements
+        className: "draggable-rectangle",
+        pane: "shadowPane", // Use shadowPane for background elements
       }).addTo(this.map);
 
       const path = this.rectangle.getElement();
       if (!path) {
-        console.warn('Failed to get rectangle element');
+        console.warn("Failed to get rectangle element");
         return;
       }
 
-      path.setAttribute('pointer-events', 'all');
-      path.style.cursor = 'move';
-      path.style.touchAction = 'none'; // Prevent default touch actions
+      path.setAttribute("pointer-events", "all");
+      path.style.cursor = "move";
+      path.style.touchAction = "none"; // Prevent default touch actions
 
       // Separate mouse and touch event listeners for better control
-      this.rectangle.on('mousedown', this.boundEvents.start);
-      this.rectangle.on('touchstart', this.boundEvents.start, { passive: false });
-      this.map.on('mousemove', this.boundEvents.move);
-      this.map.on('touchmove', this.boundEvents.move, { passive: false });
-      this.map.on('mouseup', this.boundEvents.end);
-      this.map.on('touchend', this.boundEvents.end);
-      this.map.on('touchcancel', this.boundEvents.end);
+      this.rectangle.on("mousedown", this.boundEvents.start);
+      this.rectangle.on("touchstart", this.boundEvents.start, {
+        passive: false,
+      });
+      this.map.on("mousemove", this.boundEvents.move);
+      this.map.on("touchmove", this.boundEvents.move, { passive: false });
+      this.map.on("mouseup", this.boundEvents.end);
+      this.map.on("touchend", this.boundEvents.end);
+      this.map.on("touchcancel", this.boundEvents.end);
 
       this.initializeRadarBeam();
     } catch (error) {
-      console.error('Error initializing draggable bbox:', error);
+      console.error("Error initializing draggable bbox:", error);
     }
   }
 
@@ -86,16 +88,16 @@ class DraggableBBox {
     try {
       const center = this.bounds.getCenter();
       if (!center) {
-        console.warn('Failed to get bounds center for radar beam');
+        console.warn("Failed to get bounds center for radar beam");
         return;
       }
 
       // Create the radar icon
       this.radarIcon = L.divIcon({
-        className: 'radar-icon',
+        className: "radar-icon",
         html: `<img src="/ui/static/icons/radar.png" style="width: 32px; height: 32px; cursor: pointer;">`,
         iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconAnchor: [16, 16],
       });
 
       this.radarMarker = L.marker(center, {
@@ -104,18 +106,18 @@ class DraggableBBox {
         riseOnHover: true,
         autoPanOnFocus: false,
         keyboard: true,
-        title: 'Radar Information',
-        pane: 'shadowPane'
+        title: "Radar Information",
+        pane: "shadowPane",
       }).addTo(this.map);
 
       // Create the beam line
       this.beamLine = L.polyline([center, center], {
-        color: 'rgba(0, 255, 0, 0.9)',
+        color: "rgba(0, 255, 0, 0.9)",
         weight: 3,
         opacity: 0.9,
-        className: 'radar-beam-line',
+        className: "radar-beam-line",
         interactive: false,
-        pane: 'shadowPane'
+        pane: "shadowPane",
       }).addTo(this.map);
 
       // Create popup for radar information
@@ -124,7 +126,7 @@ class DraggableBBox {
         closeButton: true,
         autoClose: true,
         closeOnEscapeKey: true,
-        closeOnClick: true
+        closeOnClick: true,
       });
 
       // Bind popup to radar marker
@@ -132,7 +134,7 @@ class DraggableBBox {
       this.updateRadarPopupContent();
 
       // Add click handler to the radar marker
-      this.radarMarker.on('click', (e) => {
+      this.radarMarker.on("click", (e) => {
         if (!this.isDragging) {
           e.originalEvent.stopPropagation();
           if (!this.radarPopup.isOpen()) {
@@ -145,13 +147,13 @@ class DraggableBBox {
       this.rectangle.bringToFront();
       const path = this.rectangle.getElement();
       if (path) {
-        path.setAttribute('pointer-events', 'all');
-        path.style.cursor = 'move';
+        path.setAttribute("pointer-events", "all");
+        path.style.cursor = "move";
       }
 
       this.startRadarAnimation();
     } catch (error) {
-      console.error('Error initializing radar beam:', error);
+      console.error("Error initializing radar beam:", error);
     }
   }
 
@@ -161,20 +163,20 @@ class DraggableBBox {
    */
   createRadarPopupContent() {
     if (!this.rectangle) {
-      console.warn('Rectangle not available for popup content');
-      return '';
+      console.warn("Rectangle not available for popup content");
+      return "";
     }
 
     const bounds = this.rectangle.getBounds();
     if (!bounds) {
-      console.warn('Failed to get bounds for popup content');
-      return '';
+      console.warn("Failed to get bounds for popup content");
+      return "";
     }
 
     const center = bounds.getCenter();
     if (!center) {
-      console.warn('Failed to get center for popup content');
-      return '';
+      console.warn("Failed to get center for popup content");
+      return "";
     }
 
     // Calculate radius in kilometers and nautical miles
@@ -184,19 +186,21 @@ class DraggableBBox {
     // Count markers in the marker pane including clustered markers
     let markerCount = 0;
     try {
-      const markerPane = document.querySelector('.leaflet-marker-pane');
+      const markerPane = document.querySelector(".leaflet-marker-pane");
       if (markerPane) {
         // Count individual markers
-        const individualMarkers = Array.from(markerPane.children)
-          .filter(child => (child.classList.contains('leaflet-marker-icon') && !child.classList.contains('custom-cluster')))
-          .length;
+        const individualMarkers = Array.from(markerPane.children).filter(
+          (child) =>
+            child.classList.contains("leaflet-marker-icon") &&
+            !child.classList.contains("custom-cluster")
+        ).length;
 
         // Count markers in clusters
         const clusterMarkers = Array.from(markerPane.children)
-          .filter(child => child.classList.contains('custom-cluster'))
+          .filter((child) => child.classList.contains("custom-cluster"))
           .reduce((total, cluster) => {
             // Extract count from the cluster's div content
-            const countDiv = cluster.querySelector('div > div');
+            const countDiv = cluster.querySelector("div > div");
             if (countDiv) {
               const count = parseInt(countDiv.textContent, 10);
               return total + (isNaN(count) ? 0 : count);
@@ -207,7 +211,7 @@ class DraggableBBox {
         markerCount = individualMarkers + clusterMarkers;
       }
     } catch (error) {
-      console.error('Error counting markers:', error);
+      console.error("Error counting markers:", error);
     }
 
     return `
@@ -237,7 +241,7 @@ class DraggableBBox {
             </tr>
             <tr>
               <th>Data Provider</th>
-              <td>${this.config?.data_provider || 'Unknown'}</td>
+              <td>${this.config?.data_provider || "Unknown"}</td>
             </tr>
           </tbody>
         </table>
@@ -286,7 +290,7 @@ class DraggableBBox {
         this.updateRadarBeam();
       }, interval);
     } catch (error) {
-      console.error('Failed to start radar animation:', error);
+      console.error("Failed to start radar animation:", error);
     }
   }
 
@@ -299,7 +303,7 @@ class DraggableBBox {
    */
   calculateIntersectionPoint(center, angleRad, bounds) {
     if (!center || !bounds) {
-      console.warn('Invalid parameters for intersection calculation');
+      console.warn("Invalid parameters for intersection calculation");
       return center;
     }
 
@@ -322,7 +326,7 @@ class DraggableBBox {
       if (distToWest > 0) minDist = Math.min(minDist, distToWest);
 
       if (minDist === Infinity) {
-        console.warn('No valid intersection point found');
+        console.warn("No valid intersection point found");
         return center;
       }
 
@@ -332,7 +336,7 @@ class DraggableBBox {
 
       return L.latLng(endLat, endLng);
     } catch (error) {
-      console.error('Error calculating intersection point:', error);
+      console.error("Error calculating intersection point:", error);
       return center;
     }
   }
@@ -343,7 +347,7 @@ class DraggableBBox {
    */
   getCurrentAngle() {
     if (!this.animationStartTime) {
-      console.warn('Animation start time not set');
+      console.warn("Animation start time not set");
       return 0;
     }
 
@@ -358,24 +362,28 @@ class DraggableBBox {
    */
   updateBeamPosition(bounds) {
     if (!this.beamLine || !this.radarMarker) {
-      console.warn('Beam line or radar marker not initialized');
+      console.warn("Beam line or radar marker not initialized");
       return;
     }
 
     try {
       const center = bounds.getCenter();
       if (!center) {
-        console.warn('Failed to get bounds center for beam update');
+        console.warn("Failed to get bounds center for beam update");
         return;
       }
 
       const angleRad = this.getCurrentAngle();
-      const endPoint = this.calculateIntersectionPoint(center, angleRad, bounds);
+      const endPoint = this.calculateIntersectionPoint(
+        center,
+        angleRad,
+        bounds
+      );
 
       // Calculate distance for beam width adjustment
       const distance = center.distanceTo(endPoint);
       const maxWidth = 10; // Maximum beam width in pixels
-      const minWidth = 3;  // Minimum beam width in pixels
+      const minWidth = 3; // Minimum beam width in pixels
       const widthFactor = Math.min(distance / 10000, 1); // Scale factor based on distance
       const beamWidth = minWidth + (maxWidth - minWidth) * widthFactor;
 
@@ -393,7 +401,7 @@ class DraggableBBox {
         this.updateRadarPopupContent();
       }
     } catch (error) {
-      console.error('Error updating beam position:', error);
+      console.error("Error updating beam position:", error);
     }
   }
 
@@ -402,7 +410,7 @@ class DraggableBBox {
    */
   updateRadarBeam() {
     if (!this.rectangle) {
-      console.warn('Rectangle not initialized for radar beam update');
+      console.warn("Rectangle not initialized for radar beam update");
       return;
     }
     this.updateBeamPosition(this.rectangle.getBounds());
@@ -447,13 +455,13 @@ class DraggableBBox {
   destroy() {
     try {
       if (this.rectangle) {
-        this.rectangle.off('mousedown', this.boundEvents.start);
-        this.rectangle.off('touchstart', this.boundEvents.start);
-        this.map.off('mousemove', this.boundEvents.move);
-        this.map.off('touchmove', this.boundEvents.move);
-        this.map.off('mouseup', this.boundEvents.end);
-        this.map.off('touchend', this.boundEvents.end);
-        this.map.off('touchcancel', this.boundEvents.end);
+        this.rectangle.off("mousedown", this.boundEvents.start);
+        this.rectangle.off("touchstart", this.boundEvents.start);
+        this.map.off("mousemove", this.boundEvents.move);
+        this.map.off("touchmove", this.boundEvents.move);
+        this.map.off("mouseup", this.boundEvents.end);
+        this.map.off("touchend", this.boundEvents.end);
+        this.map.off("touchcancel", this.boundEvents.end);
         this.rectangle.remove();
         this.map.setMaxBounds(null);
         this.map.setView([0, 0], 2);
@@ -475,9 +483,12 @@ class DraggableBBox {
       }
 
       // Remove marker selection event listener
-      window.removeEventListener('markerSelected', this.updateBeamLineForMarker);
+      window.removeEventListener(
+        "markerSelected",
+        this.updateBeamLineForMarker
+      );
     } catch (error) {
-      console.error('Error destroying draggable bbox:', error);
+      console.error("Error destroying draggable bbox:", error);
     }
   }
 
@@ -491,7 +502,7 @@ class DraggableBBox {
       north: bounds.getNorth(),
       south: bounds.getSouth(),
       east: bounds.getEast(),
-      west: bounds.getWest()
+      west: bounds.getWest(),
     };
   }
 
@@ -502,23 +513,25 @@ class DraggableBBox {
   async updateServerBounds(bounds) {
     try {
       const boundsObject = this.getBoundsObject(bounds);
-      const response = await fetch('/ui/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bounds: boundsObject })
+      const response = await fetch("/ui/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bounds: boundsObject }),
       });
 
       if (!response.ok) {
         const content = await response.text();
-        console.error('Server response:', content);
+        console.error("Server response:", content);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      window.dispatchEvent(new CustomEvent('boundsUpdated', {
-        detail: { bounds: this.getBoundsObject(bounds) }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("boundsUpdated", {
+          detail: { bounds: this.getBoundsObject(bounds) },
+        })
+      );
     } catch (error) {
-      console.error('Error updating bounding box:', error);
+      console.error("Error updating bounding box:", error);
       this.map.setMaxBounds(null);
     }
   }
@@ -528,7 +541,7 @@ class DraggableBBox {
    */
   async reset() {
     if (!this.rectangle) {
-      console.warn('Rectangle not initialized for reset');
+      console.warn("Rectangle not initialized for reset");
       return;
     }
 
@@ -539,11 +552,11 @@ class DraggableBBox {
         animate: true,
         duration: 0.5,
         easeLinearity: 0.5,
-        maxZoom: this.map.getZoom()
+        maxZoom: this.map.getZoom(),
       });
       await this.updateServerBounds(this.initialBounds);
     } catch (error) {
-      console.error('Error resetting bounds:', error);
+      console.error("Error resetting bounds:", error);
     }
   }
 
@@ -593,11 +606,25 @@ class DraggableBBox {
         e.originalEvent.preventDefault();
       }
 
+      let latlng = e.latlng;
+      // Touch event: extract coordinates and convert to latlng
+      if (
+        e.originalEvent &&
+        e.originalEvent.touches &&
+        e.originalEvent.touches.length > 0
+      ) {
+        const touch = e.originalEvent.touches[0];
+        latlng = this.map.containerPointToLatLng({
+          x: touch.clientX,
+          y: touch.clientY,
+        });
+      }
+
       this.isDragging = true;
-      this.startPoint = e.latlng;
+      this.startPoint = latlng;
       this.offset = {
-        lat: e.latlng.lat - this.rectangle.getBounds().getCenter().lat,
-        lng: e.latlng.lng - this.rectangle.getBounds().getCenter().lng
+        lat: latlng.lat - this.rectangle.getBounds().getCenter().lat,
+        lng: latlng.lng - this.rectangle.getBounds().getCenter().lng,
       };
 
       // Disable map dragging and zooming during drag
@@ -606,7 +633,7 @@ class DraggableBBox {
       this.map.doubleClickZoom.disable();
       this.map.scrollWheelZoom.disable();
     } catch (error) {
-      console.error('Error in drag start handler:', error);
+      console.error("Error in drag start handler:", error);
       this.isDragging = false;
       this.map.dragging.enable();
     }
@@ -628,11 +655,23 @@ class DraggableBBox {
         e.originalEvent.preventDefault();
       }
 
-      const newCenter = e.latlng;
+      let newCenter = e.latlng;
+      // Touch event: extract coordinates and convert to latlng
+      if (
+        e.originalEvent &&
+        e.originalEvent.touches &&
+        e.originalEvent.touches.length > 0
+      ) {
+        const touch = e.originalEvent.touches[0];
+        newCenter = this.map.containerPointToLatLng({
+          x: touch.clientX,
+          y: touch.clientY,
+        });
+      }
       const bounds = this.rectangle.getBounds();
       const size = {
         lat: bounds.getNorth() - bounds.getSouth(),
-        lng: bounds.getEast() - bounds.getWest()
+        lng: bounds.getEast() - bounds.getWest(),
       };
 
       const newBounds = L.latLngBounds(
@@ -648,13 +687,17 @@ class DraggableBBox {
       }
       if (this.beamLine) {
         const angleRad = this.getCurrentAngle();
-        const endPoint = this.calculateIntersectionPoint(newCenter, angleRad, newBounds);
+        const endPoint = this.calculateIntersectionPoint(
+          newCenter,
+          angleRad,
+          newBounds
+        );
         this.beamLine.setLatLngs([newCenter, endPoint]);
       }
 
       this.updateBeamPosition(newBounds);
     } catch (error) {
-      console.error('Error in drag move handler:', error);
+      console.error("Error in drag move handler:", error);
       this.isDragging = false;
       this.map.dragging.enable();
     }
@@ -690,12 +733,12 @@ class DraggableBBox {
         animate: true,
         duration: 0.5,
         easeLinearity: 0.5,
-        maxZoom: this.map.getZoom()
+        maxZoom: this.map.getZoom(),
       });
       this.updateServerBounds(newBounds);
       this.updateBeamPosition(newBounds);
     } catch (error) {
-      console.error('Error in drag end handler:', error);
+      console.error("Error in drag end handler:", error);
       this.isDragging = false;
       this.map.dragging.enable();
     }
@@ -705,10 +748,10 @@ class DraggableBBox {
 /**
  * Initialize the draggable bounding box when the map is ready
  */
-window.addEventListener('mapReady', async (e) => {
+window.addEventListener("mapReady", async (e) => {
   const map = e.detail.map;
   if (!map || !map.getBounds) {
-    console.error('Invalid map instance in mapReady event');
+    console.error("Invalid map instance in mapReady event");
     return;
   }
 
@@ -718,14 +761,14 @@ window.addEventListener('mapReady', async (e) => {
   }
 
   try {
-    const response = await fetch('/ui/config');
+    const response = await fetch("/ui/config");
     if (!response.ok) {
-      throw new Error('Failed to fetch configuration');
+      throw new Error("Failed to fetch configuration");
     }
     const config = await response.json();
 
     if (!config.bounds) {
-      throw new Error('No bounds in configuration');
+      throw new Error("No bounds in configuration");
     }
 
     const initialBounds = L.latLngBounds(
@@ -737,13 +780,13 @@ window.addEventListener('mapReady', async (e) => {
     window.draggableBBox.config = config; // Store the config
     await window.draggableBBox.reset();
   } catch (error) {
-    console.error('Failed to initialize draggable bounding box:', error);
+    console.error("Failed to initialize draggable bounding box:", error);
   }
 });
 
 // Add reset handler for page refresh
-window.addEventListener('beforeunload', function () {
+window.addEventListener("beforeunload", function () {
   if (window.draggableBBox) {
     window.draggableBBox.reset();
   }
-}); 
+});
