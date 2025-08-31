@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY src/ src/
 RUN pip install --no-cache-dir .
 
 # Final stage
-FROM python:3.12-slim AS final
+FROM python:3.13-slim AS final
 
 WORKDIR /app
 
