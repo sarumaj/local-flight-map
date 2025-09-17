@@ -37,7 +37,7 @@ local-flight-map = "local_flight_map.__main__:main"
 [project.optional-dependencies]
 test = [
     "pytest==8.4.1",
-    "pytest-asyncio==1.1.0"
+    "pytest-asyncio==1.2.0"
 ]
 
 [tool.setuptools.packages.find]
