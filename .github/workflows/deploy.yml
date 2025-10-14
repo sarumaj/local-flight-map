@@ -1,5 +1,6 @@
 name: deploy_to_heroku
 on:
+  workflow_dispatch:
   repository_dispatch:
     types: [deploy-trigger]
 permissions:
@@ -13,7 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: [1.21]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     name: Deploy Local Flight Map to Heroku
