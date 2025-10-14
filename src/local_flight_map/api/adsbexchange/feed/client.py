@@ -1,4 +1,6 @@
+from types import TracebackType
 from typing import Optional
+
 from async_lru import alru_cache
 
 from ...base import BaseClient
@@ -26,7 +28,9 @@ class AdsbExchangeFeederClient(BaseClient):
             base_url=config.adsbexchange_feeder_base_url,
         )
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Exit the async context manager.
         Clears the LRU cache before closing.
@@ -52,11 +56,13 @@ class AdsbExchangeFeederClient(BaseClient):
         Raises:
             ValueError: If the ADSB Exchange feeder UUID is not set.
         """
-        if not self._config.adsbexchange_feeder_uuid:
+        if (
+            not self._config.adsbexchange_feeder_uuid  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+        ):
             raise ValueError("ADSB Exchange feeder UUID is not set")
 
         async with self._session.get(
-            f"/uuid/?feed={self._config.adsbexchange_feeder_uuid}"
+            f"/uuid/?feed={self._config.adsbexchange_feeder_uuid}"  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
         ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeFeederResponse.from_dict(data) if data else None

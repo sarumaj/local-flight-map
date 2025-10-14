@@ -1,4 +1,6 @@
-from typing import Optional, Any, Dict
+from types import TracebackType
+from typing import Any, Dict, Optional
+
 import aiohttp
 
 from .config import BaseConfig
@@ -9,11 +11,8 @@ class BaseClient:
     Base class for API clients.
     Provides common functionality for making HTTP requests and managing sessions.
     """
-    def __init__(
-        self,
-        config: Optional[BaseConfig] = None,
-        **session_params: Dict[str, Any]
-    ):
+
+    def __init__(self, config: Optional[BaseConfig] = None, **session_params: Any):
         """
         Initialize the API client.
 
@@ -29,14 +28,12 @@ class BaseClient:
             connect=self._config.http_connect_timeout,
             total=self._config.http_total_timeout,
             sock_connect=self._config.http_connect_timeout,
-            sock_read=self._config.http_total_timeout
+            sock_read=self._config.http_total_timeout,
         )
 
         # Update session parameters with timeout
-        session_params_with_timeout = {
-            'timeout': timeout,
-            **session_params
-        }
+        session_params_with_timeout: Dict[str, Any] = {"timeout": timeout}
+        session_params_with_timeout.update(self._session_params)
 
         self._session = aiohttp.ClientSession(**session_params_with_timeout)
 
@@ -44,11 +41,11 @@ class BaseClient:
         """
         Close the client's HTTP session.
         """
-        if self._session:
+        if hasattr(self, "_session"):
             await self._session.close()
-            self._session = None
+            del self._session
 
-    async def __aenter__(self) -> 'BaseClient':
+    async def __aenter__(self) -> "BaseClient":
         """
         Enter the async context manager.
 
@@ -57,7 +54,9 @@ class BaseClient:
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Exit the async context manager.
         Closes the HTTP session.
@@ -70,7 +69,7 @@ class BaseClient:
         _ = (exc_type, exc_val, exc_tb)
         await self.close()
 
-    async def _handle_response(self, response: aiohttp.ClientResponse) -> Optional[Dict]:
+    async def _handle_response(self, response: aiohttp.ClientResponse) -> Optional[Dict[str, Any]]:
         """
         Handle HTTP response and return JSON data if successful.
 

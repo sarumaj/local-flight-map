@@ -3,14 +3,14 @@ Configuration module for the Local Flight Map application.
 Provides configuration classes and settings for the map interface.
 """
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
-from typing import Literal
 import logging
 from enum import Enum
+from typing import Literal, TypeAlias
 
-from ...api.base import Location, BBox
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ...api.base import BBox, Location
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("local-flight-map")
@@ -21,6 +21,9 @@ class DataProvider(Enum):
     ADSBEXCHANGE_FEED = "adsbexchange_feed"
     OPENSKY = "opensky"
     OPENSKY_PERSONAL = "opensky_personal"
+
+
+DataProviderType: TypeAlias = Literal["adsbexchange", "adsbexchange_feed", "opensky", "opensky_personal"]
 
 
 class MapConfig(BaseSettings):
@@ -41,57 +44,25 @@ class MapConfig(BaseSettings):
         app_port: The port number for the web application.
         app_dev_mode: Whether to run in development mode.
     """
-    map_center: Location = Field(
-        default_factory=lambda: Location(latitude=50.15, longitude=8.3166667),
-        description="The center of the map"
-    )
-    map_radius: float = Field(
-        default=50,
-        description="The radius of the map"
-    )
-    map_zoom_start: int = Field(
-        default=12,
-        description="The zoom level of the map"
-    )
-    map_max_bounds: bool = Field(
-        default=True,
-        description="Whether to use max bounds"
-    )
-    map_control_scale: bool = Field(
-        default=True,
-        description="Whether to show the control scale"
-    )
-    map_refresh_interval: int = Field(
-        default=200,
-        description="The interval of the map refresh in milliseconds"
-    )
 
-    data_batch_size: int = Field(
-        default=50,
-        description="The batch size of the data"
+    map_center: Location = Field(
+        default_factory=lambda: Location(latitude=50.15, longitude=8.3166667), description="The center of the map"
     )
-    data_max_threads: int = Field(
-        default=10,
-        description="The maximum number of threads to use for the data"
-    )
-    data_provider: Literal[
-        DataProvider.ADSBEXCHANGE.value,
-        DataProvider.ADSBEXCHANGE_FEED.value,
-        DataProvider.OPENSKY.value,
-        DataProvider.OPENSKY_PERSONAL.value
-    ] = Field(
+    map_radius: float = Field(default=50, description="The radius of the map")
+    map_zoom_start: int = Field(default=12, description="The zoom level of the map")
+    map_max_bounds: bool = Field(default=True, description="Whether to use max bounds")
+    map_control_scale: bool = Field(default=True, description="Whether to show the control scale")
+    map_refresh_interval: int = Field(default=200, description="The interval of the map refresh in milliseconds")
+
+    data_batch_size: int = Field(default=50, description="The batch size of the data")
+    data_max_threads: int = Field(default=10, description="The maximum number of threads to use for the data")
+    data_provider: DataProviderType = Field(
         default=DataProvider.ADSBEXCHANGE.value,
         description="The provider of the data",
     )
 
-    app_port: int = Field(
-        default=5006,
-        description="The port of the app"
-    )
-    app_dev_mode: bool = Field(
-        default=False,
-        description="Whether to run in development mode"
-    )
+    app_port: int = Field(default=5006, description="The port of the app")
+    app_dev_mode: bool = Field(default=False, description="Whether to run in development mode")
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -103,7 +74,7 @@ class MapConfig(BaseSettings):
         cli_parse_args=True,
         cli_prog_name="local-flight-map",
         cli_avoid_json=True,
-        cli_kebab_case=True
+        cli_kebab_case=True,
     )
 
     @property
@@ -144,7 +115,4 @@ class MapConfig(BaseSettings):
             - [min_lat, min_lon]: The southwest corner
             - [max_lat, max_lon]: The northeast corner
         """
-        return [
-            [self.map_bbox.min_lat, self.map_bbox.min_lon],
-            [self.map_bbox.max_lat, self.map_bbox.max_lon]
-        ]
+        return [[self.map_bbox.min_lat, self.map_bbox.min_lon], [self.map_bbox.max_lat, self.map_bbox.max_lon]]

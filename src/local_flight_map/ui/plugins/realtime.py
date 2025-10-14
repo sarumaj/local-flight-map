@@ -3,6 +3,8 @@ Real-time data module for the Local Flight Map application.
 Provides a custom real-time data implementation for updating aircraft positions on the map.
 """
 
+from typing import Any
+
 from folium.plugins import Realtime as FoliumRealtime
 
 from .jscode import JsCode
@@ -21,7 +23,8 @@ class Realtime(FoliumRealtime):
     - Marker styling
     - Update frequency control
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, *args: Any, **kwargs: Any):
         """
         Initialize a new real-time data instance.
 
@@ -37,4 +40,5 @@ class Realtime(FoliumRealtime):
             update frequency, and marker behavior.
         """
         options = JsCode.get_options(prefix="realtime_")
-        FoliumRealtime.__init__(self, *args, **{**options, **kwargs})
+        options.update(kwargs)
+        FoliumRealtime.__init__(self, *args, **options)  # pyright: ignore[reportUnknownMemberType]

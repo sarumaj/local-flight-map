@@ -1,13 +1,15 @@
-from typing import Optional, Union, Tuple, Callable
-from async_lru import alru_cache
-from datetime import datetime
-from collections import defaultdict
 import asyncio
+from collections import defaultdict
+from datetime import datetime
+from types import TracebackType
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
 import aiohttp
+from async_lru import alru_cache
 
 from ..base import BaseClient, BBox, OAuth2AuthMiddleware
 from .config import OpenSkyConfig
-from .response import States, FlightTrack
+from .response import FlightTrack, States
 
 
 class OpenSkyClient(BaseClient):
@@ -39,7 +41,7 @@ class OpenSkyClient(BaseClient):
             connect=config.http_connect_timeout,
             total=config.http_total_timeout,
             sock_connect=config.http_connect_timeout,
-            sock_read=config.http_total_timeout
+            sock_read=config.http_total_timeout,
         )
 
         BaseClient.__init__(
@@ -52,16 +54,19 @@ class OpenSkyClient(BaseClient):
                     client_id=config.opensky_client_id,
                     client_secret=config.opensky_client_secret,
                     grant_type="client_credentials",
-                    timeout=timeout
+                    timeout=timeout,
                 ),
-            )
+            ),
         )
-        self._last_requests = defaultdict(lambda: 0)
+        self._config = config
+        self._last_requests: Dict[Callable[..., Any], int] = defaultdict(lambda: 0)
         self._rate_limit_lock = asyncio.Lock()
         self._access_token = None
         self._token_expiry = 0
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Clean up resources when exiting the async context.
 
@@ -78,7 +83,7 @@ class OpenSkyClient(BaseClient):
         await self.get_track_by_aircraft_from_opensky.cache_close()
         await super(OpenSkyClient, self).__aexit__(exc_type, exc_val, exc_tb)
 
-    async def _apply_opensky_rate_limit(self, method: Callable):
+    async def _apply_opensky_rate_limit(self, method: Callable[..., Any]):
         """
         Apply rate limiting to OpenSky API requests.
 
@@ -108,7 +113,7 @@ class OpenSkyClient(BaseClient):
         self,
         time_secs: Union[int, datetime] = 0,
         icao24: Optional[Union[str, Tuple[str, ...]]] = None,
-        bbox: Optional[BBox] = None
+        bbox: Optional[BBox] = None,
     ) -> Optional[States]:
         """
         Get all aircraft states from OpenSky Network.
@@ -130,31 +135,23 @@ class OpenSkyClient(BaseClient):
         if bbox:
             bbox.validate()
 
-        params = {'extended': 1}
+        params: Dict[str, Any] = {"extended": 1}
         if time_secs:
             if isinstance(time_secs, datetime):
                 time_secs = int(time_secs.timestamp())
-            params['time'] = time_secs
+            params["time"] = time_secs
 
         if icao24:
             if isinstance(icao24, (tuple, list)):
-                params['icao24'] = ','.join(map(lambda x: str(x).strip().lower(), icao24))
+                params["icao24"] = ",".join(map(lambda x: str(x).strip().lower(), icao24))
             else:
-                params['icao24'] = icao24
+                params["icao24"] = icao24
 
         if bbox:
             bbox.validate()
-            params.update({
-                'lamin': bbox.min_lat,
-                'lamax': bbox.max_lat,
-                'lomin': bbox.min_lon,
-                'lomax': bbox.max_lon
-            })
+            params.update({"lamin": bbox.min_lat, "lamax": bbox.max_lat, "lomin": bbox.min_lon, "lomax": bbox.max_lon})
         await self._apply_opensky_rate_limit(self.get_states_from_opensky)
-        async with self._session.get(
-            "/api/states/all",
-            params=params
-        ) as response:
+        async with self._session.get("/api/states/all", params=params) as response:
             data = await self._handle_response(response)
             return States.from_dict(data) if data else None
 
@@ -163,7 +160,7 @@ class OpenSkyClient(BaseClient):
         self,
         time_secs: Union[int, datetime] = 0,
         icao24: Optional[Union[str, Tuple[str, ...]]] = None,
-        serials: Optional[Union[int, Tuple[int, ...]]] = None
+        serials: Optional[Union[int, Tuple[int, ...]]] = None,
     ) -> Optional[States]:
         """
         Get states from own sensors from OpenSky Network.
@@ -185,38 +182,33 @@ class OpenSkyClient(BaseClient):
         if not self._config.opensky_client_id or not self._config.opensky_client_secret:
             raise ValueError("OAuth2 client credentials required for this operation")
 
-        params = {'extended': 1}
+        params: Dict[str, Any] = {"extended": 1}
         if time_secs:
             if isinstance(time_secs, datetime):
-                params['time'] = int(time_secs.timestamp())
+                params["time"] = int(time_secs.timestamp())
             else:
-                params['time'] = time_secs
+                params["time"] = time_secs
 
         if icao24:
             if isinstance(icao24, (tuple, list)):
-                params['icao24'] = ','.join(map(lambda x: str(x).strip().lower(), icao24))
+                params["icao24"] = ",".join(map(lambda x: str(x).strip().lower(), icao24))
             else:
-                params['icao24'] = icao24
+                params["icao24"] = icao24
 
         if serials:
             if isinstance(serials, (tuple, list)):
-                params['serials'] = ','.join(map(lambda x: str(x).strip(), serials))
+                params["serials"] = ",".join(map(lambda x: str(x).strip(), serials))
             else:
-                params['serials'] = serials
+                params["serials"] = serials
 
         await self._apply_opensky_rate_limit(self.get_my_states_from_opensky)
-        async with self._session.get(
-            "/api/states/own",
-            params=params
-        ) as response:
+        async with self._session.get("/api/states/own", params=params) as response:
             data = await self._handle_response(response)
             return States.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
     async def get_track_by_aircraft_from_opensky(
-        self,
-        icao24: str,
-        time_secs: Union[int, datetime] = 0
+        self, icao24: str, time_secs: Union[int, datetime] = 0
     ) -> Optional[FlightTrack]:
         """
         Get flight track by aircraft from OpenSky Network.
@@ -234,19 +226,16 @@ class OpenSkyClient(BaseClient):
         Raises:
             ValueError: If the time is too old (more than 30 days ago).
         """
-        params = {'icao24': icao24}
+        params: Dict[str, Any] = {"icao24": icao24}
         if isinstance(time_secs, datetime):
-            params['time'] = int(time_secs.timestamp())
+            params["time"] = int(time_secs.timestamp())
         else:
-            params['time'] = time_secs
+            params["time"] = time_secs
 
-        if int(datetime.now().timestamp()) - params['time'] > 2592 * 1e3 and params['time'] != 0:
+        if int(datetime.now().timestamp()) - params["time"] > 2592 * 1e3 and params["time"] != 0:
             raise ValueError("It is not possible to access flight tracks from more than 30 days in the past.")
 
         await self._apply_opensky_rate_limit(self.get_track_by_aircraft_from_opensky)
-        async with self._session.get(
-            "/api/tracks/all",
-            params=params
-        ) as response:
+        async with self._session.get("/api/tracks/all", params=params) as response:
             data = await self._handle_response(response)
             return FlightTrack.from_dict(data) if data else None

@@ -1,11 +1,10 @@
+import logging
 from base64 import b64encode
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-import logging
 
 import aiohttp
-import asyncio
 import orjson as json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -57,14 +56,14 @@ class OAuth2AuthMiddleware:
                 pass
         self._logger = logging.getLogger("local_flight_map.api.OAuth2AuthMiddleware")
 
-    async def _get_access_token(self) -> str:
+    async def _get_access_token(self) -> Optional[str]:
         """
         Get a valid OAuth2 access token using client credentials flow.
         If the current token is still valid, it will be returned.
         Otherwise, a new token will be requested.
 
         Returns:
-            str: A valid access token.
+            Optional[str]: A valid access token.
 
         Raises:
             ValueError: If client credentials are not configured.
@@ -80,10 +79,10 @@ class OAuth2AuthMiddleware:
 
         # Create session with timeout if provided
         session_kwargs = {}
-        #if self._timeout:
-        #    session_kwargs["timeout"] = self._timeout
+        if self._timeout:
+            session_kwargs["timeout"] = self._timeout
 
-        async with aiohttp.ClientSession(**session_kwargs) as session:
+        async with aiohttp.ClientSession(**session_kwargs) as session:  # pyright: ignore[reportUnknownArgumentType]
             try:
                 resp = await session.post(
                     self._auth_url,
@@ -94,22 +93,21 @@ class OAuth2AuthMiddleware:
                     },
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
-            except asyncio.TimeoutError as e:
-                self._logger.error("Timeout while connecting to OAuth2 token endpoint %s", self._auth_url, exc_info=True)
-                raise ValueError(f"Timeout connecting to {self._auth_url}") from e
-            except aiohttp.ClientConnectorError as e:
-                self._logger.error("Connector error while connecting to OAuth2 token endpoint %s", self._auth_url, exc_info=True)
-                raise ValueError(f"Connector error connecting to {self._auth_url}") from e
-            except aiohttp.ClientError as e:
-                self._logger.error("Client error while requesting access token from %s", self._auth_url, exc_info=True)
-                raise ValueError(f"Client error requesting token from {self._auth_url}") from e
+            except Exception as e:
+                self._logger.error("Failed to connect to token endpoint %s", self._auth_url, exc_info=True)
+                raise ValueError("Failed to connect to token endpoint") from e
 
             # If we have a response object, check status and parse JSON
             try:
                 resp.raise_for_status()
             except aiohttp.ClientResponseError as e:
-                self._logger.error("Non-200 response from token endpoint %s: %s", self._auth_url, getattr(resp, 'status', None), exc_info=True)
-                raise ValueError(f"Failed to get access token: {getattr(resp, 'status', None)}") from e
+                self._logger.error(
+                    "Non-200 response from token endpoint %s: %s",
+                    self._auth_url,
+                    resp.status,
+                    exc_info=True,
+                )
+                raise ValueError(f"Failed to get access token: {resp.status}") from e
 
             try:
                 data = await resp.json()
@@ -121,10 +119,11 @@ class OAuth2AuthMiddleware:
                 self._access_token = data["access_token"]
                 self._token_expiry = now + int(data.get("expires_in", 0))
             except KeyError as e:
-                self._logger.error("Token response missing expected fields from %s: %s", self._auth_url, data, exc_info=True)
+                self._logger.error(
+                    "Token response missing expected fields from %s: %s", self._auth_url, data, exc_info=True
+                )
                 raise ValueError("Token response missing access_token") from e
 
-            # Persist token (orjson.dumps returns bytes)
             try:
                 self._token_storage_path.write_bytes(
                     json.dumps(
@@ -150,9 +149,6 @@ class OAuth2AuthMiddleware:
         Returns:
             The response from the handler.
         """
-        if not request.headers:
-            request.headers = {}
-
         if request.headers.get("Authorization"):
             raise ValueError("Authorization header already set")
 

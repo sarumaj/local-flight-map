@@ -3,9 +3,11 @@ Marker cluster module for the Local Flight Map application.
 Provides a custom marker cluster implementation for grouping aircraft markers on the map.
 """
 
+from typing import Any
+
 from folium.plugins import MarkerCluster as FoliumMarkerCluster
 
-from .jscode import JsCode, FoliumJsCode
+from .jscode import FoliumJsCode, JsCode
 
 
 class MarkerCluster(FoliumMarkerCluster):
@@ -21,7 +23,8 @@ class MarkerCluster(FoliumMarkerCluster):
     - Chunk progress tracking
     - Cluster behavior customization
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, *args: Any, **kwargs: Any):
         """
         Initialize a new marker cluster instance.
 
@@ -42,4 +45,5 @@ class MarkerCluster(FoliumMarkerCluster):
                 "chunkProgress": FoliumJsCode,
             },
         )
-        FoliumMarkerCluster.__init__(self, *args, **{**options, **kwargs})
+        options.update(kwargs)
+        FoliumMarkerCluster.__init__(self, *args, **options)  # pyright: ignore[reportUnknownMemberType]

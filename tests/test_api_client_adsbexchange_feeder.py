@@ -1,6 +1,9 @@
-import pytest
-import aiohttp
+# pyright: basic
 from unittest.mock import AsyncMock, Mock, patch
+
+import aiohttp
+import pytest
+
 from local_flight_map.api.adsbexchange.feed import (
     AdsbExchangeFeederClient,
     AdsbExchangeFeederConfig,
@@ -11,10 +14,8 @@ from local_flight_map.api.adsbexchange.feed import (
 
 @pytest.fixture
 async def adsbexchange_feeder_client():
-    config = AdsbExchangeFeederConfig(
-        adsbexchange_feeder_uuid="test-uuid"
-    )
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    config = AdsbExchangeFeederConfig(adsbexchange_feeder_uuid="test-uuid")
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = AdsbExchangeFeederClient(config)
         yield client
@@ -23,10 +24,8 @@ async def adsbexchange_feeder_client():
 
 @pytest.fixture
 async def adsbexchange_feeder_client_empty():
-    config = AdsbExchangeFeederConfig(
-        adsbexchange_feeder_uuid=""
-    )
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    config = AdsbExchangeFeederConfig(adsbexchange_feeder_uuid="")
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = AdsbExchangeFeederClient(config)
         yield client
@@ -87,23 +86,13 @@ def get_mock_aircraft_data():
         "seen": 0.0,
         "rssi": -20.0,
         "calc_track": 90.0,
-        "lastPosition": {
-            "lat": 40.6413,
-            "lon": -73.7781,
-            "nic": 8,
-            "rc": 185,
-            "seen_pos": 0.0
-        }
+        "lastPosition": {"lat": 40.6413, "lon": -73.7781, "nic": 8, "rc": 185, "seen_pos": 0.0},
     }
 
 
 def get_mock_response_data():
     """Helper function to get complete mock response data"""
-    return {
-        "aircraft": [get_mock_aircraft_data()],
-        "messages": "No error",
-        "now": 1678901234
-    }
+    return {"aircraft": [get_mock_aircraft_data()], "messages": "No error", "now": 1678901234}
 
 
 class TestAdsbExchangeFeederClient:
@@ -119,7 +108,7 @@ class TestAdsbExchangeFeederClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "text/html"
 
-        with patch.object(adsbexchange_feeder_client, '_session') as mock_session:
+        with patch.object(adsbexchange_feeder_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -186,18 +175,10 @@ class TestAdsbExchangeFeederClient:
                 assert aircraft.seen == 0.0
                 assert aircraft.rssi == -20.0
                 assert aircraft.calc_track == 90.0
-                assert aircraft.lastPosition == {
-                    "lat": 40.6413,
-                    "lon": -73.7781,
-                    "nic": 8,
-                    "rc": 185,
-                    "seen_pos": 0.0
-                }
+                assert aircraft.lastPosition == {"lat": 40.6413, "lon": -73.7781, "nic": 8, "rc": 185, "seen_pos": 0.0}
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/uuid/?feed=test-uuid"
-                )
+                mock_session.get.assert_called_once_with("/uuid/?feed=test-uuid")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_from_adsbexchange_feeder_no_uuid(self, adsbexchange_feeder_client_empty):
@@ -210,16 +191,18 @@ class TestAdsbExchangeFeederClient:
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
-        mock_response.raise_for_status = Mock(side_effect=aiohttp.ClientResponseError(
-            request_info=Mock(),
-            history=(),
-            status=404,
-            message="Not Found",
-            headers={}
-        ))
+        mock_response.raise_for_status = Mock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=Mock(),
+                history=(),
+                status=404,
+                message="Not Found",
+                headers={},  # pyright: ignore[reportArgumentType]
+            )
+        )
         mock_response.content_type = "text/html"
 
-        with patch.object(adsbexchange_feeder_client, '_session') as mock_session:
+        with patch.object(adsbexchange_feeder_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -236,7 +219,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()
+        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is not None
@@ -304,7 +287,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()
+        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is None
@@ -317,7 +300,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()
+        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is not None
@@ -348,11 +331,7 @@ class TestAdsbExchangeFeederResponse:
 
     def test_to_geojson_empty_aircraft(self):
         # Create test data with empty aircraft list
-        response_data = {
-            "aircraft": [],
-            "messages": "No error",
-            "now": 1678901234
-        }
+        response_data = {"aircraft": [], "messages": "No error", "now": 1678901234}
         response = AdsbExchangeFeederResponse.from_dict(response_data)
 
         # Test to_geojson method

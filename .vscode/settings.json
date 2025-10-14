@@ -23,6 +23,7 @@
     "fasthtml",
     "FLARM",
     "Getmapping",
+    "hangglider",
     "healthcheck",
     "hexdb",
     "horiz",
@@ -32,6 +33,7 @@
     "jscode",
     "justlogin",
     "Karte",
+    "keepalive",
     "KJFK",
     "KLAX",
     "lamax",
@@ -40,6 +42,7 @@
     "levelname",
     "Lngs",
     "lomin",
+    "markercluster",
     "memomaps",
     "mlat",
     "multilateration",
@@ -49,6 +52,7 @@
     "OPNV",
     "opnvkarte",
     "orjson",
+    "perhour",
     "popupclose",
     "popupopen",
     "ptime",
@@ -66,10 +70,12 @@
     "spiderfy",
     "testpaths",
     "tisb",
+    "transatmospheric",
     "updatetime",
     "usedocker",
     "USGS",
     "uvicorn",
-    "venv"
+    "venv",
+    "vnav"
   ]
 }

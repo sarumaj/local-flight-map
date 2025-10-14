@@ -1,3 +1,3 @@
-from .interface import MapInterface, MapConfig
+from .interface import MapConfig, MapInterface
 
-__all__ = [k for k, v in globals().items() if v in (MapInterface, MapConfig)]
+__all__ = ["MapInterface", "MapConfig"]

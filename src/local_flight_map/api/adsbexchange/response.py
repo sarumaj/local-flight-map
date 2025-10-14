@@ -4,7 +4,7 @@ Provides classes and utilities for interacting with the ADSB Exchange API.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
 from ..base import ResponseObject
 
@@ -70,6 +70,7 @@ class AircraftProperties(ResponseObject):
         gpsOkLat: The latitude of the GPS update. Can be None.
         gpsOkLon: The longitude of the GPS update. Can be None.
     """
+
     hex: str
     type: str
     flight: Optional[str]
@@ -138,8 +139,8 @@ class AircraftProperties(ResponseObject):
                 "type": "Point",
                 "coordinates": [
                     self.gpsOkLon if self.gpsOkLon else self.lon,
-                    self.gpsOkLat if self.gpsOkLat else self.lat
-                ]
+                    self.gpsOkLat if self.gpsOkLat else self.lat,
+                ],
             },
             "properties": {
                 "icao24_code": self.hex,
@@ -193,8 +194,8 @@ class AircraftProperties(ResponseObject):
                 "received_signal_strength_indicator": self.rssi,
                 "time_since_last_gps_update": self.gpsOkBefore,
                 "latitude_of_gps_update": self.gpsOkLat,
-                "longitude_of_gps_update": self.gpsOkLon
-            }
+                "longitude_of_gps_update": self.gpsOkLon,
+            },
         }
 
 
@@ -211,6 +212,7 @@ class AdsbExchangeResponse(ResponseObject):
         ctime: Client timestamp in milliseconds since epoch.
         ptime: Processing time in milliseconds.
     """
+
     ac: List[AircraftProperties]
     msg: str
     now: int
@@ -219,7 +221,7 @@ class AdsbExchangeResponse(ResponseObject):
     ptime: int
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'AdsbExchangeResponse':
+    def from_dict(cls, data: Dict[str, Any]) -> "AdsbExchangeResponse":
         """
         Create an AdsbExchangeResponse from a dictionary.
 
@@ -230,12 +232,15 @@ class AdsbExchangeResponse(ResponseObject):
             A new AdsbExchangeResponse instance.
         """
         return cls(
-            ac=[AircraftProperties.from_dict(aircraft) for aircraft in data['ac'] or []],
-            msg=data['msg'],
-            now=data['now'],
-            total=data['total'],
-            ctime=data['ctime'],
-            ptime=data['ptime']
+            ac=[
+                AircraftProperties.from_dict(aircraft)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                for aircraft in (data["ac"] or [])  # pyright: ignore[reportUnknownVariableType]
+            ],
+            msg=data["msg"],
+            now=data["now"],
+            total=data["total"],
+            ctime=data["ctime"],
+            ptime=data["ptime"],
         )
 
     def to_geojson(self) -> Dict[str, Any]:
@@ -245,7 +250,4 @@ class AdsbExchangeResponse(ResponseObject):
         Returns:
             A dictionary containing the GeoJSON representation of all aircraft.
         """
-        return {
-            "type": "FeatureCollection",
-            "features": [aircraft.to_geojson() for aircraft in self.ac]
-        }
+        return {"type": "FeatureCollection", "features": [aircraft.to_geojson() for aircraft in self.ac]}

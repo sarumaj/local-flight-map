@@ -4,7 +4,7 @@ Provides classes and utilities for interacting with the ADSB Exchange Feeder.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Union
 
 from ...base import ResponseObject
 
@@ -68,6 +68,7 @@ class AircraftPropertiesFromFeeder(ResponseObject):
         calc_track: The calculated track angle in degrees. Can be None.
         lastPosition: The last known position of the aircraft. Can be None.
     """
+
     hex: str
     type: str
     flight: Optional[str]
@@ -121,7 +122,7 @@ class AircraftPropertiesFromFeeder(ResponseObject):
     calc_track: Optional[float]
     lastPosition: Optional[Dict[str, Any]]
 
-    def to_geojson(self) -> Dict[str, Any]:
+    def to_geojson(self) -> Optional[Dict[str, Any]]:
         """
         Convert the aircraft data to GeoJSON format.
 
@@ -129,18 +130,15 @@ class AircraftPropertiesFromFeeder(ResponseObject):
             A dictionary containing the GeoJSON representation of the aircraft.
         """
         # Use lastPosition if current position is not available
-        lat = self.lat or (self.lastPosition.get('lat') if self.lastPosition else None)
-        lon = self.lon or (self.lastPosition.get('lon') if self.lastPosition else None)
+        lat = self.lat or (self.lastPosition.get("lat") if self.lastPosition else None)
+        lon = self.lon or (self.lastPosition.get("lon") if self.lastPosition else None)
 
         if lat is None or lon is None:
             return None
 
         return {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [lon, lat]
-            },
+            "geometry": {"type": "Point", "coordinates": [lon, lat]},
             "properties": {
                 "icao24_code": self.hex,
                 "callsign": self.flight,
@@ -172,13 +170,11 @@ class AircraftPropertiesFromFeeder(ResponseObject):
                 "latitude": lat,
                 "longitude": lon,
                 "navigation_integrity_category": (
-                    self.nic or (self.lastPosition.get('nic') if self.lastPosition else None)
+                    self.nic or (self.lastPosition.get("nic") if self.lastPosition else None)
                 ),
-                "radius_of_containment": (
-                    self.rc or (self.lastPosition.get('rc') if self.lastPosition else None)
-                ),
+                "radius_of_containment": (self.rc or (self.lastPosition.get("rc") if self.lastPosition else None)),
                 "time_since_last_position_update": (
-                    self.seen_pos or (self.lastPosition.get('seen_pos') if self.lastPosition else None)
+                    self.seen_pos or (self.lastPosition.get("seen_pos") if self.lastPosition else None)
                 ),
                 "distance_from_receiver": self.r_dst,
                 "direction_from_receiver": self.r_dir,
@@ -198,8 +194,8 @@ class AircraftPropertiesFromFeeder(ResponseObject):
                 "time_since_last_update": self.seen,
                 "received_signal_strength_indicator": self.rssi,
                 "calculated_track": self.calc_track,
-                "is_last_position": self.lastPosition is not None
-            }
+                "is_last_position": self.lastPosition is not None,
+            },
         }
 
 
@@ -213,12 +209,13 @@ class AdsbExchangeFeederResponse(ResponseObject):
         messages: Message from the API.
         now: Current timestamp in milliseconds since epoch.
     """
+
     aircraft: List[AircraftPropertiesFromFeeder]
     messages: str
     now: float
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'AdsbExchangeFeederResponse':
+    def from_dict(cls, data: Dict[str, Any]) -> "AdsbExchangeFeederResponse":
         """
         Create an AdsbExchangeResponse from a dictionary.
 
@@ -229,9 +226,14 @@ class AdsbExchangeFeederResponse(ResponseObject):
             A new AdsbExchangeResponse instance.
         """
         return cls(
-            aircraft=[AircraftPropertiesFromFeeder.from_dict(aircraft) for aircraft in data['aircraft'] or []],
-            messages=data['messages'],
-            now=data['now']
+            aircraft=[
+                AircraftPropertiesFromFeeder.from_dict(
+                    aircraft  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                )
+                for aircraft in (data["aircraft"] or [])  # pyright: ignore[reportUnknownVariableType]
+            ],
+            messages=data["messages"],
+            now=data["now"],
         )
 
     def to_geojson(self) -> Dict[str, Any]:
@@ -241,13 +243,10 @@ class AdsbExchangeFeederResponse(ResponseObject):
         Returns:
             A dictionary containing the GeoJSON representation of all aircraft.
         """
-        features = []
+        features: List[Dict[str, Any]] = []
         for aircraft in self.aircraft:
             geojson = aircraft.to_geojson()
             if geojson is not None:
                 features.append(geojson)
 
-        return {
-            "type": "FeatureCollection",
-            "features": features
-        }
+        return {"type": "FeatureCollection", "features": features}

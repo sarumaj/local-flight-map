@@ -4,8 +4,8 @@ Provides classes and utilities for interacting with the OpenSky Network API to f
 tracks, and other flight data.
 """
 
-from typing import Optional, List, Any, Dict
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from ..base import ResponseObject
 
@@ -67,6 +67,7 @@ class StateVector(ResponseObject):
                     19 = Cluster Obstacle,
                     20 = Line Obstacle.
     """
+
     icao24: str
     callsign: Optional[str]
     origin_country: str
@@ -98,10 +99,7 @@ class StateVector(ResponseObject):
         """
         return {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [self.longitude, self.latitude]
-            },
+            "geometry": {"type": "Point", "coordinates": [self.longitude, self.latitude]},
             "properties": {
                 "icao24_code": self.icao24,
                 "callsign": self.callsign,
@@ -121,7 +119,7 @@ class StateVector(ResponseObject):
                 "special_position_indicator_flag": self.spi,
                 "position_source": self.position_source,
                 "category": self.category,
-            }
+            },
         }
 
 
@@ -138,11 +136,12 @@ class States(ResponseObject):
               All vectors represent the state of a vehicle with the interval `[time - 1, time]`.
         states: A list of state vectors of aircraft. None if no states are available.
     """
+
     time: int
     states: List[StateVector]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'States':
+    def from_dict(cls, data: Dict[str, Any]) -> "States":
         """
         Create a States object from a dictionary.
 
@@ -156,12 +155,15 @@ class States(ResponseObject):
             A new States instance containing the parsed state vectors.
         """
         return cls(
-            time=data['time'],
+            time=data["time"],
             states=[
-                StateVector.from_dict(state) if isinstance(state, dict) else
-                StateVector.from_list(state)
-                for state in data['states'] or []
-            ]
+                (
+                    StateVector.from_dict(state)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    if isinstance(state, dict)
+                    else StateVector.from_list(state)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                )
+                for state in (data["states"] or [])  # pyright: ignore[reportUnknownVariableType]
+            ],
         )
 
     def to_geojson(self) -> Dict[str, Any]:
@@ -174,10 +176,7 @@ class States(ResponseObject):
         Returns:
             A GeoJSON feature collection containing all aircraft states.
         """
-        return {
-            "type": "FeatureCollection",
-            "features": [state.to_geojson() for state in self.states]
-        }
+        return {"type": "FeatureCollection", "features": [state.to_geojson() for state in self.states]}
 
 
 @dataclass
@@ -196,6 +195,7 @@ class Waypoint(ResponseObject):
         true_track: The true track of the waypoint in decimal degrees clockwise from north (north=0°). Can be null.
         on_ground: Whether the waypoint is on the ground (retrieved from a surface position report).
     """
+
     time: int
     latitude: Optional[float]
     longitude: Optional[float]
@@ -215,18 +215,15 @@ class Waypoint(ResponseObject):
         """
         return {
             "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [self.longitude, self.latitude]
-            },
+            "geometry": {"type": "Point", "coordinates": [self.longitude, self.latitude]},
             "properties": {
                 "time": self.time,
                 "latitude": self.latitude,
                 "longitude": self.longitude,
                 "baro_altitude": self.baro_altitude,
                 "true_track": self.true_track,
-                "on_ground": self.on_ground
-            }
+                "on_ground": self.on_ground,
+            },
         }
 
 
@@ -245,6 +242,7 @@ class FlightTrack(ResponseObject):
         callsign: The callsign of the vehicle. Can be None if no callsign has been received.
         path: A list of waypoints of the flight track.
     """
+
     icao24: str
     startTime: int
     endTime: int
@@ -252,7 +250,7 @@ class FlightTrack(ResponseObject):
     path: List[Waypoint]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FlightTrack':
+    def from_dict(cls, data: Dict[str, Any]) -> "FlightTrack":
         """
         Create a FlightTrack object from a dictionary.
 
@@ -266,15 +264,18 @@ class FlightTrack(ResponseObject):
             A new FlightTrack instance containing the parsed waypoints.
         """
         return cls(
-            icao24=data['icao24'],
-            startTime=data['startTime'],
-            endTime=data['endTime'],
-            callsign=data['callsign'],
+            icao24=data["icao24"],
+            startTime=data["startTime"],
+            endTime=data["endTime"],
+            callsign=data["callsign"],
             path=[
-                Waypoint.from_dict(waypoint) if isinstance(waypoint, dict) else
-                Waypoint.from_list(waypoint)
-                for waypoint in data['path'] or []
-            ]
+                (
+                    Waypoint.from_dict(waypoint)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    if isinstance(waypoint, dict)
+                    else Waypoint.from_list(waypoint)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                )
+                for waypoint in (data["path"] or [])  # pyright: ignore[reportUnknownVariableType]
+            ],
         )
 
     def to_geojson(self) -> Dict[str, Any]:
@@ -291,12 +292,12 @@ class FlightTrack(ResponseObject):
             "type": "Feature",
             "geometry": {
                 "type": "LineString",
-                "coordinates": [[waypoint.longitude, waypoint.latitude] for waypoint in self.path]
+                "coordinates": [[waypoint.longitude, waypoint.latitude] for waypoint in self.path],
             },
             "properties": {
                 "icao24_code": self.icao24,
                 "callsign": self.callsign,
                 "start_time": self.startTime,
                 "end_time": self.endTime,
-            }
+            },
         }

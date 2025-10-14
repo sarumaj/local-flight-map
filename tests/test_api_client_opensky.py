@@ -1,25 +1,18 @@
-import pytest
-import aiohttp
-from unittest.mock import AsyncMock, Mock, patch
+# pyright: basic
 from datetime import datetime
-from local_flight_map.api.opensky import (
-    OpenSkyClient,
-    OpenSkyConfig,
-    States,
-    StateVector,
-    FlightTrack,
-    Waypoint,
-)
+from unittest.mock import AsyncMock, Mock, patch
+
+import aiohttp
+import pytest
+
 from local_flight_map.api.base import BBox
+from local_flight_map.api.opensky import FlightTrack, OpenSkyClient, OpenSkyConfig, States, StateVector, Waypoint
 
 
 @pytest.fixture
 async def opensky_client():
-    config = OpenSkyConfig(
-        opensky_client_id="",
-        opensky_client_secret=""
-    )
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    config = OpenSkyConfig(opensky_client_id="", opensky_client_secret="")
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = OpenSkyClient(config)
         yield client
@@ -28,11 +21,8 @@ async def opensky_client():
 
 @pytest.fixture
 async def authenticated_opensky_client():
-    config = OpenSkyConfig(
-        opensky_client_id="test_id",
-        opensky_client_secret="test_secret"
-    )
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    config = OpenSkyConfig(opensky_client_id="test_id", opensky_client_secret="test_secret")
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = OpenSkyClient(config)
         yield client
@@ -64,9 +54,9 @@ class TestOpenSkyClient:
                     "1234",  # squawk
                     False,  # spi
                     0,  # position_source
-                    3  # category
+                    3,  # category
                 ]
-            ]
+            ],
         }
 
         # Mock the session's get method
@@ -78,7 +68,7 @@ class TestOpenSkyClient:
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
         mock_response.content_type = "application/json"
 
-        with patch.object(opensky_client, '_session') as mock_session:
+        with patch.object(opensky_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -112,18 +102,12 @@ class TestOpenSkyClient:
                 assert state.category == 3
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/states/all",
-                    params={'extended': 1}
-                )
+                mock_session.get.assert_called_once_with("/api/states/all", params={"extended": 1})
 
     @pytest.mark.asyncio
     async def test_get_states_from_opensky_with_params(self, opensky_client):
         # Mock response data
-        mock_data = {
-            "time": 1678901234,
-            "states": []
-        }
+        mock_data = {"time": 1678901234, "states": []}
 
         # Mock the session's get method
         mock_response = AsyncMock()
@@ -134,7 +118,7 @@ class TestOpenSkyClient:
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
         mock_response.content_type = "application/json"
 
-        with patch.object(opensky_client, '_session') as mock_session:
+        with patch.object(opensky_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -144,33 +128,26 @@ class TestOpenSkyClient:
                 icao24 = ("a83547", "b12345")
                 bbox = BBox(min_lat=40.0, max_lat=41.0, min_lon=-74.0, max_lon=-73.0)
 
-                await opensky_client.get_states_from_opensky(
-                    time_secs=time,
-                    icao24=icao24,
-                    bbox=bbox
-                )
+                await opensky_client.get_states_from_opensky(time_secs=time, icao24=icao24, bbox=bbox)
 
                 # Verify the API call parameters
                 mock_session.get.assert_called_once_with(
                     "/api/states/all",
                     params={
-                        'extended': 1,
-                        'time': int(time.timestamp()),
-                        'icao24': 'a83547,b12345',
-                        'lamax': 41.0,
-                        'lomax': -73.0,
-                        'lomin': -74.0,
-                        'lamin': 40.0
-                    }
+                        "extended": 1,
+                        "time": int(time.timestamp()),
+                        "icao24": "a83547,b12345",
+                        "lamax": 41.0,
+                        "lomax": -73.0,
+                        "lomin": -74.0,
+                        "lamin": 40.0,
+                    },
                 )
 
     @pytest.mark.asyncio
     async def test_get_my_states_from_opensky(self, authenticated_opensky_client):
         # Mock response data
-        mock_data = {
-            "time": 1678901234,
-            "states": []
-        }
+        mock_data = {"time": 1678901234, "states": []}
 
         # Mock the session's get method
         mock_response = AsyncMock()
@@ -181,7 +158,7 @@ class TestOpenSkyClient:
         mock_response.__aenter__ = AsyncMock(return_value=mock_response)
         mock_response.content_type = "application/json"
 
-        with patch.object(authenticated_opensky_client, '_session') as mock_session:
+        with patch.object(authenticated_opensky_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -195,10 +172,7 @@ class TestOpenSkyClient:
                 assert len(result.states) == 0
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/states/own",
-                    params={'extended': 1}
-                )
+                mock_session.get.assert_called_once_with("/api/states/own", params={"extended": 1})
 
     @pytest.mark.asyncio
     async def test_get_my_states_from_opensky_requires_auth(self, opensky_client):
@@ -222,9 +196,9 @@ class TestOpenSkyClient:
                     "longitude": -73.7781,
                     "baro_altitude": 35000.0,
                     "true_track": 90.0,
-                    "on_ground": False
+                    "on_ground": False,
                 }
-            ]
+            ],
         }
 
         # Mock the session's get method
@@ -235,7 +209,7 @@ class TestOpenSkyClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(opensky_client, '_session') as mock_session:
+        with patch.object(opensky_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -260,13 +234,7 @@ class TestOpenSkyClient:
                 assert not waypoint.on_ground
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/tracks/all",
-                    params={
-                        'icao24': 'a83547',
-                        'time': 0
-                    }
-                )
+                mock_session.get.assert_called_once_with("/api/tracks/all", params={"icao24": "a83547", "time": 0})
 
     @pytest.mark.asyncio
     async def test_get_track_by_aircraft_from_opensky_old_data(self, opensky_client):
@@ -274,8 +242,7 @@ class TestOpenSkyClient:
             # Test that requesting data older than 30 days raises error
             old_time = int(datetime.now().timestamp()) - (31 * 24 * 60 * 60)  # 31 days ago
             with pytest.raises(
-                ValueError,
-                match="It is not possible to access flight tracks from more than 30 days in the past"
+                ValueError, match="It is not possible to access flight tracks from more than 30 days in the past"
             ):
                 await opensky_client.get_track_by_aircraft_from_opensky("a83547", time_secs=old_time)
 
@@ -293,16 +260,18 @@ class TestOpenSkyClient:
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
-        mock_raise_for_status = Mock(side_effect=aiohttp.ClientResponseError(
-            request_info=Mock(real_url="https://opensky-network.org/api/states/all"),
-            history=None,
-            status=500,
-            message="Server Error"
-        ))
+        mock_raise_for_status = Mock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=Mock(real_url="https://opensky-network.org/api/states/all"),
+                history=None,  # pyright: ignore[reportArgumentType]
+                status=500,
+                message="Server Error",
+            )
+        )
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(opensky_client, '_session') as mock_session:
+        with patch.object(opensky_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -312,6 +281,5 @@ class TestOpenSkyClient:
                     await opensky_client.get_states_from_opensky()
                 assert exc_info.value.status == 500
                 assert str(exc_info.value) == (
-                    "500, message='Server Error', "
-                    "url='https://opensky-network.org/api/states/all'"
+                    "500, message='Server Error', " "url='https://opensky-network.org/api/states/all'"
                 )

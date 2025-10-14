@@ -5,11 +5,13 @@ Provides authentication and request logging middleware.
 
 import re
 import time
+from typing import Any, Awaitable, Callable, Dict, Optional
+
 import fastapi
-from fastapi.responses import ORJSONResponse as JSONResponse, Response
+from fastapi.responses import ORJSONResponse as JSONResponse
+from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from typing import Callable, Dict, Optional
 
 from .config import logger
 
@@ -19,7 +21,8 @@ class SessionAuthenticator(BaseHTTPMiddleware):
     Session authenticator middleware.
     Handles authentication for protected routes.
     """
-    def __init__(self, app: fastapi.FastAPI, paths: Dict[re.Pattern, Response] = None):
+
+    def __init__(self, app: fastapi.FastAPI, paths: Optional[Dict[re.Pattern[Any], Response]] = None):
         """
         Initialize the session authenticator.
 
@@ -30,7 +33,9 @@ class SessionAuthenticator(BaseHTTPMiddleware):
         BaseHTTPMiddleware.__init__(self, app)
         self._paths = paths
 
-    async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[..., Awaitable[fastapi.Response]]
+    ) -> fastapi.Response:
         """
         Process the request and handle authentication.
 
@@ -43,11 +48,10 @@ class SessionAuthenticator(BaseHTTPMiddleware):
         """
         unauthorized_response: Optional[Response] = None
         for path, response in (
-            self._paths or {
+            self._paths
+            or {
                 re.compile(r"^/.*"): JSONResponse(
-                    content={"error": "Unauthorized"},
-                    status_code=200,
-                    headers={"X-Status-Code": "403"}
+                    content={"error": "Unauthorized"}, status_code=200, headers={"X-Status-Code": "403"}
                 )
             }
         ).items():
@@ -79,6 +83,7 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
     Request logger middleware.
     Logs information about each request including timing and response size.
     """
+
     def __init__(self, app: fastapi.FastAPI):
         """
         Initialize the request logger middleware.
@@ -88,7 +93,9 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
         """
         BaseHTTPMiddleware.__init__(self, app)
 
-    async def dispatch(self, request: Request, call_next: Callable) -> fastapi.Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[..., Awaitable[fastapi.Response]]
+    ) -> fastapi.Response:
         """
         Process the request and log information about it.
 

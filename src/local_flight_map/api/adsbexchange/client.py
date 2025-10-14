@@ -1,5 +1,7 @@
+from types import TracebackType
 from typing import Optional
 from urllib.parse import urlparse
+
 from async_lru import alru_cache
 
 from ..base import BaseClient, Location
@@ -26,12 +28,14 @@ class AdsbExchangeClient(BaseClient):
             config=config,
             base_url=config.adsbexchange_base_url,
             headers={
-                'X-RapidAPI-Key': config.adsbexchange_api_key,
-                'X-RapidAPI-Host': urlparse(config.adsbexchange_base_url).netloc
-            }
+                "X-RapidAPI-Key": config.adsbexchange_api_key,
+                "X-RapidAPI-Host": urlparse(config.adsbexchange_base_url).netloc,
+            },
         )
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Exit the async context manager.
         Clears the LRU cache before closing.
@@ -50,10 +54,7 @@ class AdsbExchangeClient(BaseClient):
         await BaseClient.__aexit__(self, exc_type, exc_val, exc_tb)
 
     @alru_cache(maxsize=1000)
-    async def get_aircraft_from_adsbexchange_by_registration(
-        self,
-        registration: str
-    ) -> Optional[AdsbExchangeResponse]:
+    async def get_aircraft_from_adsbexchange_by_registration(self, registration: str) -> Optional[AdsbExchangeResponse]:
         """
         Get aircraft data by registration number.
 
@@ -70,10 +71,7 @@ class AdsbExchangeClient(BaseClient):
             return AdsbExchangeResponse.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
-    async def get_aircraft_from_adsbexchange_by_icao24(
-        self,
-        icao24: str
-    ) -> Optional[AdsbExchangeResponse]:
+    async def get_aircraft_from_adsbexchange_by_icao24(self, icao24: str) -> Optional[AdsbExchangeResponse]:
         """
         Get aircraft data by ICAO24 address.
 
@@ -90,10 +88,7 @@ class AdsbExchangeClient(BaseClient):
             return AdsbExchangeResponse.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
-    async def get_aircraft_from_adsbexchange_by_callsign(
-        self,
-        callsign: str
-    ) -> Optional[AdsbExchangeResponse]:
+    async def get_aircraft_from_adsbexchange_by_callsign(self, callsign: str) -> Optional[AdsbExchangeResponse]:
         """
         Get aircraft data by callsign.
 
@@ -110,10 +105,7 @@ class AdsbExchangeClient(BaseClient):
             return AdsbExchangeResponse.from_dict(data) if data else None
 
     @alru_cache(ttl=0.1)
-    async def get_aircraft_from_adsbexchange_by_squawk(
-        self,
-        squawk: str
-    ) -> Optional[AdsbExchangeResponse]:
+    async def get_aircraft_from_adsbexchange_by_squawk(self, squawk: str) -> Optional[AdsbExchangeResponse]:
         """
         Get aircraft data by squawk code.
 
@@ -147,9 +139,7 @@ class AdsbExchangeClient(BaseClient):
 
     @alru_cache(ttl=0.1)
     async def get_aircraft_from_adsbexchange_within_range(
-        self,
-        center: Location,
-        radius: int
+        self, center: Location, radius: int
     ) -> Optional[AdsbExchangeResponse]:
         """
         Get aircraft data within a specified range of a location.

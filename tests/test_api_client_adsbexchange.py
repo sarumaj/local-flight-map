@@ -1,6 +1,9 @@
-import pytest
-import aiohttp
+# pyright: basic
 from unittest.mock import AsyncMock, Mock, patch
+
+import aiohttp
+import pytest
+
 from local_flight_map.api.adsbexchange import (
     AdsbExchangeClient,
     AdsbExchangeConfig,
@@ -12,10 +15,8 @@ from local_flight_map.api.base import Location
 
 @pytest.fixture
 async def adsbexchange_client():
-    config = AdsbExchangeConfig(
-        adsbexchange_api_key="test_key"
-    )
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    config = AdsbExchangeConfig(adsbexchange_api_key="test_key")
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = AdsbExchangeClient(config)
         yield client
@@ -75,7 +76,7 @@ def get_mock_aircraft_data():
         "tisb": [],
         "messages": 100,
         "seen": 0.0,
-        "rssi": -20.0
+        "rssi": -20.0,
     }
 
 
@@ -87,7 +88,7 @@ def get_mock_response_data():
         "now": 1678901234,
         "total": 1,
         "ctime": 1678901234000,
-        "ptime": 10
+        "ptime": 10,
     }
 
 
@@ -104,7 +105,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -175,9 +176,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.rssi == -20.0
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/registration/N12345"
-                )
+                mock_session.get.assert_called_once_with("/v2/registration/N12345")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_by_icao24(self, adsbexchange_client):
@@ -191,7 +190,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -209,9 +208,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.r == "N12345"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/icao/a83547"
-                )
+                mock_session.get.assert_called_once_with("/v2/icao/a83547")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_by_callsign(self, adsbexchange_client):
@@ -225,7 +222,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -243,9 +240,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.r == "N12345"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/callsign/swa123"
-                )
+                mock_session.get.assert_called_once_with("/v2/callsign/swa123")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_by_squawk(self, adsbexchange_client):
@@ -259,7 +254,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -276,9 +271,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.squawk == "1234"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/sqk/1234"
-                )
+                mock_session.get.assert_called_once_with("/v2/sqk/1234")
 
     @pytest.mark.asyncio
     async def test_get_military_aircrafts(self, adsbexchange_client):
@@ -292,7 +285,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -308,9 +301,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.hex == "a83547"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/mil"
-                )
+                mock_session.get.assert_called_once_with("/v2/mil")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_within_range(self, adsbexchange_client):
@@ -324,7 +315,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -341,9 +332,7 @@ class TestAdsbExchangeClient:
                 assert aircraft.hex == "a83547"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/v2/lat/40.641300/lon/-73.778100/dist/100.000"
-                )
+                mock_session.get.assert_called_once_with("/v2/lat/40.641300/lon/-73.778100/dist/100.000")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_not_found(self, adsbexchange_client):
@@ -353,7 +342,7 @@ class TestAdsbExchangeClient:
         mock_response.raise_for_status = Mock(return_value=None)
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -369,15 +358,17 @@ class TestAdsbExchangeClient:
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
-        mock_response.raise_for_status = Mock(side_effect=aiohttp.ClientResponseError(
-            request_info=Mock(real_url="https://adsbexchange-com1.p.rapidapi.com/v2/registration/N12345"),
-            history=None,
-            status=500,
-            message="Server Error"
-        ))
+        mock_response.raise_for_status = Mock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=Mock(real_url="https://adsbexchange-com1.p.rapidapi.com/v2/registration/N12345"),
+                history=None,  # pyright: ignore[reportArgumentType]
+                status=500,
+                message="Server Error",
+            )
+        )
         mock_response.content_type = "application/json"
 
-        with patch.object(adsbexchange_client, '_session') as mock_session:
+        with patch.object(adsbexchange_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 

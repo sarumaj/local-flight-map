@@ -3,10 +3,11 @@ Base module for the API package.
 Provides base classes and utilities for API clients and data structures.
 """
 
-from typing import Dict, Any, List, Union
-from dataclasses import asdict
-import orjson as json
+from dataclasses import asdict, is_dataclass
 from itertools import zip_longest
+from typing import Any, Dict, List, Union
+
+import orjson as json
 
 
 class ResponseObject:
@@ -14,6 +15,7 @@ class ResponseObject:
     Base class for API response objects.
     Provides methods for converting between different data formats.
     """
+
     __annotations__: Dict[str, Any] = {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -23,10 +25,10 @@ class ResponseObject:
         Returns:
             A dictionary representation of the object
         """
-        return asdict(self)
+        return asdict(self) if is_dataclass(self) else {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ResponseObject':
+    def from_dict(cls, data: Dict[str, Any]) -> "ResponseObject":
         """
         Create an object from a dictionary.
 
@@ -36,7 +38,7 @@ class ResponseObject:
         Returns:
             A new ResponseObject instance
         """
-        defaults = {}
+        defaults: Dict[str, Any] = {}
         for field_name, field_type in cls.__annotations__.items():
             if hasattr(field_type, "__origin__"):
                 if field_type.__origin__ is Union:
@@ -59,7 +61,7 @@ class ResponseObject:
         return json.dumps(self.to_dict()).decode("utf-8")
 
     @classmethod
-    def from_json(cls, json_str: str) -> 'ResponseObject':
+    def from_json(cls, json_str: str) -> "ResponseObject":
         """
         Create an object from a JSON string.
 
@@ -72,7 +74,7 @@ class ResponseObject:
         return cls.from_dict(json.loads(json_str))
 
     @classmethod
-    def from_list(cls, data: List[Any]) -> 'ResponseObject':
+    def from_list(cls, data: List[Any]) -> "ResponseObject":
         """
         Create an object from a list of values.
 

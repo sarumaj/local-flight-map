@@ -3,31 +3,28 @@ Map interface module for the Local Flight Map application.
 Provides the main interface for displaying and interacting with the flight map.
 """
 
+import re
+import secrets
+import signal
+from pathlib import Path
+from types import FrameType, TracebackType
+from typing import Any, Dict, Optional, Union
+
 import folium
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import (
-    ORJSONResponse as JSONResponse,
-    RedirectResponse,
-    HTMLResponse,
-    Response
-)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.responses import ORJSONResponse as JSONResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-import secrets
 from starlette.middleware.sessions import SessionMiddleware
-import re
-import signal
-from types import FrameType
-from typing import Union, Dict, Any
 
 from ...api import ApiClients
-from .config import MapConfig
-from .layers import MapLayers
+from .config import BBox, MapConfig, logger
 from .data import DataSource
-from .config import BBox, logger
-from .middleware import SessionAuthenticator, RequestLoggerMiddleware
+from .layers import MapLayers
+from .middleware import RequestLoggerMiddleware, SessionAuthenticator
 
 
 class MapInterface:
@@ -41,30 +38,24 @@ class MapInterface:
         Empty feature collection response.
         Used when no aircraft data is available or when access is denied.
         """
-        def __init__(self, **kwargs: Dict[str, Any]):
+
+        def __init__(self, **kwargs: Any):
             """
             Initialize an empty feature collection response.
 
             Args:
                 **kwargs: Additional keyword arguments to pass to JSONResponse.
             """
-            JSONResponse.__init__(
-                self,
-                **{
-                    "content": {
-                        "type": "FeatureCollection",
-                        "features": []
-                    },
-                    "status_code": 200,
-                    **kwargs
-                }
-            )
+            kwargs_: Dict[str, Any] = kwargs.copy()
+            if "status_code" not in kwargs_:
+                kwargs_["status_code"] = 200
 
-    def __init__(
-        self,
-        config: MapConfig,
-        clients: ApiClients
-    ):
+            if "content" not in kwargs_:
+                kwargs_["content"] = {"type": "FeatureCollection", "features": []}
+
+            JSONResponse.__init__(self, **kwargs_)
+
+    def __init__(self, config: MapConfig, clients: ApiClients):
         """
         Initialize the map interface.
 
@@ -76,8 +67,6 @@ class MapInterface:
         self._clients = clients
         self._data = DataSource(clients, config)
         self._session_secret = secrets.token_urlsafe(32)
-        self._map = None
-        self._layers = None
 
         self._setup_fastapi()
         self._initialize_map()
@@ -100,16 +89,15 @@ class MapInterface:
 
         # Add session authenticator
         self._app.add_middleware(
-            SessionAuthenticator,
+            SessionAuthenticator,  # pyright: ignore[reportArgumentType]
             paths={
                 re.compile(r"^/service/aircrafts"): MapInterface.EmptyFeatureCollection(
                     headers={"X-Status-Code": "403"}
                 ),
                 re.compile(r"^/ui/static/icons/(?!forbidden\.png).*"): RedirectResponse(
-                    url="/ui/static/icons/forbidden.png",
-                    headers={"X-Status-Code": "403"}
+                    url="/ui/static/icons/forbidden.png", headers={"X-Status-Code": "403"}
                 ),
-            }
+            },
         )
 
         # Add session middleware
@@ -120,25 +108,20 @@ class MapInterface:
             max_age=3600,
             same_site="lax" if self._config.app_dev_mode else "none",
             https_only=not self._config.app_dev_mode,
-            path="/"
+            path="/",
         )
 
         # Add request logger
-        self._app.add_middleware(RequestLoggerMiddleware)
+        self._app.add_middleware(RequestLoggerMiddleware)  # pyright: ignore[reportArgumentType]
 
         # Mount static files
-        self._app.mount(
-            "/ui/static",
-            StaticFiles(directory=str(Path(__file__).parent / "static")),
-            name="static"
-        )
+        self._app.mount("/ui/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
         # Add routes
         self._app.add_api_route("/ui/config", self.get_config, methods=["GET"])
         self._app.add_api_route("/ui/config", self.update_config, methods=["POST"])
         self._app.add_api_route(
-            "/auth/cookie-consent", self.handle_cookie_consent, methods=["GET", "POST"],
-            response_model=None
+            "/auth/cookie-consent", self.handle_cookie_consent, methods=["GET", "POST"], response_model=None
         )
         self._app.add_api_route("/auth/status", self.check_auth_status, methods=["GET"])
         self._app.add_api_route("/service/health", self.health, methods=["GET"])
@@ -166,7 +149,7 @@ class MapInterface:
         )
 
         self._map.fit_bounds(self._config.get_map_bounds())
-        self._map.options["radius"] = self._config.map_radius
+        self._map.options["radius"] = self._config.map_radius  # pyright: ignore[reportUnknownMemberType]
 
         self._layers = MapLayers(self._map, self._config)
         self._layers.add_to_map()
@@ -184,7 +167,7 @@ class MapInterface:
             httponly=True,
             samesite="lax" if self._config.app_dev_mode else "none",
             secure=not self._config.app_dev_mode,
-            path="/"
+            path="/",
         )
         return response
 
@@ -198,7 +181,9 @@ class MapInterface:
         <link rel="stylesheet" href="/ui/static/css/main.css">
         """
         root = self._map.get_root()
-        root.header.add_child(folium.Element(css))
+        root.header.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            folium.Element(css)
+        )
 
         # Add static scripts
         static_scripts = list((Path(__file__).parent / "static" / "js").glob("*.js"))
@@ -207,14 +192,14 @@ class MapInterface:
             raise FileNotFoundError("No static scripts found")
 
         for script in static_scripts:
-            root.html.add_child(folium.Element(
-                    f'<script src="/ui/static/js/{script.name}"></script>'
-            ))
+            root.html.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+                folium.Element(f'<script src="/ui/static/js/{script.name}"></script>')
+            )
 
         # Add inline map initialization script
-        root.html.add_child(folium.Element(
-            f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>'
-        ))
+        root.html.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            folium.Element(f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>')
+        )
 
     async def get_map(self, request: Request) -> HTMLResponse:
         """
@@ -227,8 +212,8 @@ class MapInterface:
             HTMLResponse: The map HTML page.
         """
         return HTMLResponse(
-            content=self._map.get_root().render(),
-            status_code=200
+            content=self._map.get_root().render(),  # pyright: ignore[reportUnknownMemberType]
+            status_code=200,
         )
 
     async def __aenter__(self):
@@ -240,7 +225,9 @@ class MapInterface:
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Exit the async context manager.
         Cleans up resources and closes connections.
@@ -266,9 +253,9 @@ class MapInterface:
         return JSONResponse(
             content={
                 "authenticated": request.session.get("authenticated", False),
-                "cookie_consent": request.session.get("cookie_consent", False)
+                "cookie_consent": request.session.get("cookie_consent", False),
             },
-            status_code=200
+            status_code=200,
         )
 
     async def health(self) -> JSONResponse:
@@ -278,10 +265,7 @@ class MapInterface:
         Returns:
             JSONResponse: A response indicating the service is healthy.
         """
-        return JSONResponse(
-            content={"status": "ok"},
-            status_code=200
-        )
+        return JSONResponse(content={"status": "ok"}, status_code=200)
 
     async def get_config(self) -> JSONResponse:
         """
@@ -297,16 +281,13 @@ class MapInterface:
                     "north": self._config.map_bbox.max_lat,
                     "south": self._config.map_bbox.min_lat,
                     "east": self._config.map_bbox.max_lon,
-                    "west": self._config.map_bbox.min_lon
+                    "west": self._config.map_bbox.min_lon,
                 },
-                "center": {
-                    "lat": self._config.map_center.latitude,
-                    "lng": self._config.map_center.longitude
-                },
+                "center": {"lat": self._config.map_center.latitude, "lng": self._config.map_center.longitude},
                 "radius": self._config.map_radius,
-                "data_provider": self._config.data_provider
+                "data_provider": self._config.data_provider,
             },
-            status_code=200
+            status_code=200,
         )
 
     async def get_aircrafts_geojson(self) -> JSONResponse:
@@ -327,9 +308,7 @@ class MapInterface:
             )
         except Exception as e:
             logger.error(f"Error getting aircraft data: {e}", exc_info=True)
-            return MapInterface.EmptyFeatureCollection(
-                headers={"X-Status-Code": "500"}
-            )
+            return MapInterface.EmptyFeatureCollection(headers={"X-Status-Code": "500"})
 
     async def handle_cookie_consent(self, request: Request) -> Union[JSONResponse, RedirectResponse]:
         """
@@ -350,7 +329,9 @@ class MapInterface:
                 consent = request.query_params.get("consent", "").lower() == "true"
                 if consent:
                     request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
-                    return self._apply_cookie_consent(RedirectResponse(url="/", status_code=303))
+                    return self._apply_cookie_consent(  # pyright: ignore[reportReturnType]
+                        RedirectResponse(url="/", status_code=303),
+                    )
 
                 return RedirectResponse(url="/", status_code=303)
 
@@ -358,23 +339,16 @@ class MapInterface:
             data = await request.json()
             if data.get("consent") is True:
                 request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
-                return self._apply_cookie_consent(JSONResponse(
-                    content={"status": "ok"},
-                    status_code=200
-                ))
+                return self._apply_cookie_consent(  # pyright: ignore[reportReturnType]
+                    JSONResponse(content={"status": "ok"}, status_code=200),
+                )
 
-            return JSONResponse(
-                content={"status": "error", "message": "Consent not given"},
-                status_code=400
-            )
+            return JSONResponse(content={"status": "error", "message": "Consent not given"}, status_code=400)
         except Exception as e:
             logger.error(f"Error handling cookie consent: {e}")
             if request.method == "GET":
                 return RedirectResponse(url="/", status_code=303)
-            return JSONResponse(
-                content={"status": "error", "message": str(e)},
-                status_code=500
-            )
+            return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
     async def update_config(self, request: Request) -> JSONResponse:
         """
@@ -393,34 +367,23 @@ class MapInterface:
                 min_lat=bounds_data["south"],
                 max_lat=bounds_data["north"],
                 min_lon=bounds_data["west"],
-                max_lon=bounds_data["east"]
+                max_lon=bounds_data["east"],
             )
-            return JSONResponse(
-                content={"status": "ok"},
-                status_code=200
-            )
+            return JSONResponse(content={"status": "ok"}, status_code=200)
         except Exception as e:
             logger.error(f"Error updating bounding box: {e}")
-            return JSONResponse(
-                content={"status": "error", "message": str(e)},
-                status_code=400
-            )
+            return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
 
     async def serve(self):
         """
         Start the web server and serve the map interface.
         Handles graceful shutdown on SIGINT and SIGTERM.
         """
-        config = uvicorn.Config(
-            self._app,
-            host="0.0.0.0",
-            port=self._config.app_port,
-            log_level="error"
-        )
+        config = uvicorn.Config(self._app, host="0.0.0.0", port=self._config.app_port, log_level="error")
         logger.info(f"Starting server on  {config.host}:{config.port}")
         server = uvicorn.Server(config)
 
-        def handle_signal(sig: Union[signal.Signals, int], frame: FrameType):
+        def handle_signal(sig: int, frame: Optional[FrameType]):
             """
             Handle shutdown signals.
 
@@ -428,6 +391,7 @@ class MapInterface:
                 sig: The signal that was received.
                 frame: The current stack frame.
             """
+            _ = frame
             logger.info(f"Received signal {sig}, shutting down...")
             server.should_exit = True
 

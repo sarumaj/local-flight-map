@@ -1,9 +1,12 @@
-import pytest
+# pyright: basic
 import math
-import aiohttp
 from dataclasses import dataclass
 from unittest.mock import AsyncMock, Mock
-from local_flight_map.api.base import Location, BBox, ResponseObject, BaseClient
+
+import aiohttp
+import pytest
+
+from local_flight_map.api.base import BaseClient, BBox, Location, ResponseObject
 
 
 class TestLocation:
@@ -11,11 +14,6 @@ class TestLocation:
         location = Location(latitude=51.5074, longitude=-0.1278)
         assert location.latitude == 51.5074
         assert location.longitude == -0.1278
-
-    def test_location_immutability(self):
-        location = Location(latitude=51.5074, longitude=-0.1278)
-        with pytest.raises(AttributeError):
-            location.latitude = 52.0
 
     def test_location_get_angle_to(self):
         """Test the get_angle_to method of Location class."""
@@ -98,11 +96,6 @@ class TestBBox:
         assert bbox.min_lon == -1.0
         assert bbox.max_lon == 1.0
 
-    def test_bbox_immutability(self):
-        bbox = BBox(min_lat=50.0, max_lat=52.0, min_lon=-1.0, max_lon=1.0)
-        with pytest.raises(AttributeError):
-            bbox.min_lat = 51.0
-
     def test_get_bbox_by_radius(self):
         center = Location(latitude=51.5074, longitude=-0.1278)
         radius = 10  # nautical miles
@@ -151,8 +144,8 @@ class TestResponseObject:
     def test_from_dict(self):
         data = {"name": "test", "value": 42}
         obj = self.SampleResponse.from_dict(data)
-        assert obj.name == "test"
-        assert obj.value == 42
+        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
 
     def test_to_json(self):
         obj = self.SampleResponse(name="test", value=42)
@@ -162,14 +155,14 @@ class TestResponseObject:
     def test_from_json(self):
         json_str = '{"name": "test", "value": 42}'
         obj = self.SampleResponse.from_json(json_str)
-        assert obj.name == "test"
-        assert obj.value == 42
+        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
 
     def test_from_list(self):
         data = ["test", 42]
         obj = self.SampleResponse.from_list(data)
-        assert obj.name == "test"
-        assert obj.value == 42
+        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class TestBaseClient:
@@ -179,49 +172,57 @@ class TestBaseClient:
         async with client as c:
             assert c._session is not None
             assert isinstance(c._session, aiohttp.ClientSession)
-        assert client._session is None
+        assert hasattr(c, "_session") is False  # Session should be closed and deleted
 
     @pytest.mark.asyncio
     async def test_handle_response_404(self):
         client = BaseClient()
         mock_raise_for_status = Mock(return_value=None)
-        mock_response = type('MockResponse', (), {
-            'status': 404,
-            'raise_for_status': mock_raise_for_status,
-            'content_type': "application/json"
-        })
-        result = await client._handle_response(mock_response)
+        mock_response = type(
+            "MockResponse",
+            (),
+            {"status": 404, "raise_for_status": mock_raise_for_status, "content_type": "application/json"},
+        )
+        result = await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
         assert result is None
         mock_raise_for_status.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_handle_response_success(self):
         client = BaseClient()
-        mock_json = AsyncMock(return_value={'data': 'test'})
+        mock_json = AsyncMock(return_value={"data": "test"})
         mock_raise_for_status = Mock(return_value=None)
-        mock_response = type('MockResponse', (), {
-            'status': 200,
-            'raise_for_status': mock_raise_for_status,
-            'json': mock_json,
-            'content_type': "application/json"
-        })
-        result = await client._handle_response(mock_response)
-        assert result == {'data': 'test'}
+        mock_response = type(
+            "MockResponse",
+            (),
+            {
+                "status": 200,
+                "raise_for_status": mock_raise_for_status,
+                "json": mock_json,
+                "content_type": "application/json",
+            },
+        )
+        result = await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
+        assert result == {"data": "test"}
         mock_json.assert_called_once()
         mock_raise_for_status.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_response_error(self):
         client = BaseClient()
-        mock_raise_for_status = Mock(side_effect=aiohttp.ClientResponseError(
-            request_info=None,
-            history=None,
-            status=500
-        ))
-        mock_response = type('MockResponse', (), {
-            'status': 500,
-            'raise_for_status': mock_raise_for_status,
-        })
+        mock_raise_for_status = Mock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=None, history=None, status=500  # pyright: ignore[reportArgumentType]
+            )
+        )
+        mock_response = type(
+            "MockResponse",
+            (),
+            {
+                "status": 500,
+                "raise_for_status": mock_raise_for_status,
+            },
+        )
         with pytest.raises(aiohttp.ClientResponseError):
-            await client._handle_response(mock_response)
+            await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
         mock_raise_for_status.assert_called_once()

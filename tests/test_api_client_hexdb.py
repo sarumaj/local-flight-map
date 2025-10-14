@@ -1,19 +1,21 @@
-import pytest
-import aiohttp
+# pyright: basic
 from unittest.mock import AsyncMock, Mock, patch
 
+import aiohttp
+import pytest
+
 from local_flight_map.api.hexdb import (
-    HexDbClient,
-    HexDbConfig,
     AircraftInformation,
     AirportInformation,
-    RouteInformation
+    HexDbClient,
+    HexDbConfig,
+    RouteInformation,
 )
 
 
 @pytest.fixture
 async def hexdb_client():
-    with patch('async_lru._LRUCacheWrapper.cache_close') as close:
+    with patch("async_lru._LRUCacheWrapper.cache_close") as close:
         close.return_value = AsyncMock()
         client = HexDbClient(HexDbConfig())
         yield client
@@ -31,7 +33,7 @@ class TestHexDbClient:
             "OperatorFlagCode": "US",
             "RegisteredOwners": "SOUTHWEST AIRLINES",
             "Registration": "N12345",
-            "Type": "737-800"
+            "Type": "737-800",
         }
 
         # Mock the session's get method
@@ -42,7 +44,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -61,9 +63,7 @@ class TestHexDbClient:
                 assert result.Type == "737-800"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/v1/aircraft/a83547"
-                )
+                mock_session.get.assert_called_once_with("/api/v1/aircraft/a83547")
 
     @pytest.mark.asyncio
     async def test_get_airport_information(self, hexdb_client):
@@ -75,7 +75,7 @@ class TestHexDbClient:
             "icao": "KJFK",
             "latitude": 40.6413,
             "longitude": -73.7781,
-            "region_name": "New York"
+            "region_name": "New York",
         }
 
         # Mock the session's get method
@@ -86,7 +86,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
             async with hexdb_client:
@@ -104,18 +104,12 @@ class TestHexDbClient:
                 assert result.region_name == "New York"
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/v1/airport/icao/kjfk"
-                )
+                mock_session.get.assert_called_once_with("/api/v1/airport/icao/kjfk")
 
     @pytest.mark.asyncio
     async def test_get_route_information(self, hexdb_client):
         # Mock response data
-        mock_data = {
-            "flight": "SWA123",
-            "route": "KJFK-KLAX",
-            "updatetime": 1678901234
-        }
+        mock_data = {"flight": "SWA123", "route": "KJFK-KLAX", "updatetime": 1678901234}
 
         # Mock the session's get method
         mock_response = AsyncMock()
@@ -125,7 +119,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -140,9 +134,7 @@ class TestHexDbClient:
                 assert result.updatetime == 1678901234
 
                 # Verify the API call
-                mock_session.get.assert_called_once_with(
-                    "/api/v1/route/icao/swa123"
-                )
+                mock_session.get.assert_called_once_with("/api/v1/route/icao/swa123")
 
     @pytest.mark.asyncio
     async def test_get_aircraft_information_not_found(self, hexdb_client):
@@ -153,7 +145,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -173,7 +165,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
             async with hexdb_client:
@@ -192,7 +184,7 @@ class TestHexDbClient:
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -208,16 +200,18 @@ class TestHexDbClient:
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
-        mock_raise_for_status = Mock(side_effect=aiohttp.ClientResponseError(
-            request_info=Mock(real_url="https://api.hexdb.com/aircraft/icao/a83547"),
-            history=None,
-            status=500,
-            message="Server Error"
-        ))
+        mock_raise_for_status = Mock(
+            side_effect=aiohttp.ClientResponseError(
+                request_info=Mock(real_url="https://api.hexdb.com/aircraft/icao/a83547"),
+                history=None,  # pyright: ignore[reportArgumentType]
+                status=500,
+                message="Server Error",
+            )
+        )
         mock_response.raise_for_status = mock_raise_for_status
         mock_response.content_type = "application/json"
 
-        with patch.object(hexdb_client, '_session') as mock_session:
+        with patch.object(hexdb_client, "_session") as mock_session:
             mock_session.get.return_value.__aenter__.return_value = mock_response
             mock_session.close = AsyncMock()
 
@@ -227,6 +221,5 @@ class TestHexDbClient:
                     await hexdb_client.get_aircraft_information_from_hexdb("A83547")
                 assert exc_info.value.status == 500
                 assert str(exc_info.value) == (
-                    "500, message='Server Error', "
-                    "url='https://api.hexdb.com/aircraft/icao/a83547'"
+                    "500, message='Server Error', " "url='https://api.hexdb.com/aircraft/icao/a83547'"
                 )

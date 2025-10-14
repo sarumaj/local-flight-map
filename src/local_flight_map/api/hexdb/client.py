@@ -1,4 +1,6 @@
+from types import TracebackType
 from typing import Optional
+
 from async_lru import alru_cache
 
 from ..base import BaseClient
@@ -20,6 +22,7 @@ class HexDbClient(BaseClient):
     - Automatic caching of responses
     - Proper cleanup of resources
     """
+
     def __init__(self, config: Optional[HexDbConfig] = None):
         """
         Initialize a new HexDB API client.
@@ -29,13 +32,11 @@ class HexDbClient(BaseClient):
                    default configuration will be used.
         """
         config = config or HexDbConfig()
-        BaseClient.__init__(
-            self,
-            config=config,
-            base_url=config.hexdb_base_url
-        )
+        BaseClient.__init__(self, config=config, base_url=config.hexdb_base_url)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: Optional[type], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ):
         """
         Clean up resources when exiting the async context.
 
@@ -69,17 +70,12 @@ class HexDbClient(BaseClient):
         Returns:
             Optional[RouteInformation]: The route information if found, None otherwise.
         """
-        async with self._session.get(
-            f"/api/v1/route/icao/{callsign.lower().strip()}"
-        ) as response:
+        async with self._session.get(f"/api/v1/route/icao/{callsign.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return RouteInformation.from_dict(data) if data else None
+            return RouteInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]
 
     @alru_cache(maxsize=1000)
-    async def get_airport_information_from_hexdb(
-        self,
-        icao24: str
-    ) -> Optional[AirportInformation]:
+    async def get_airport_information_from_hexdb(self, icao24: str) -> Optional[AirportInformation]:
         """
         Get airport information from HexDB by ICAO code.
 
@@ -92,17 +88,12 @@ class HexDbClient(BaseClient):
         Returns:
             Optional[AirportInformation]: The airport information if found, None otherwise.
         """
-        async with self._session.get(
-            f"/api/v1/airport/icao/{icao24.lower().strip()}"
-        ) as response:
+        async with self._session.get(f"/api/v1/airport/icao/{icao24.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return AirportInformation.from_dict(data) if data else None
+            return AirportInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]
 
     @alru_cache(maxsize=1000)
-    async def get_aircraft_information_from_hexdb(
-        self,
-        icao24: str
-    ) -> Optional[AircraftInformation]:
+    async def get_aircraft_information_from_hexdb(self, icao24: str) -> Optional[AircraftInformation]:
         """
         Get aircraft information from HexDB by ICAO24 code.
 
@@ -115,8 +106,6 @@ class HexDbClient(BaseClient):
         Returns:
             Optional[AircraftInformation]: The aircraft information if found, None otherwise.
         """
-        async with self._session.get(
-            f"/api/v1/aircraft/{icao24.lower().strip()}"
-        ) as response:
+        async with self._session.get(f"/api/v1/aircraft/{icao24.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return AircraftInformation.from_dict(data) if data else None
+            return AircraftInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]

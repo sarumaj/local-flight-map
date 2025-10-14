@@ -3,11 +3,13 @@ Map layers module for the Local Flight Map application.
 Provides classes and utilities for managing map layers and controls.
 """
 
-import folium
-from folium.plugins import MousePosition, MiniMap, Fullscreen
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from typing import Optional
 
-from ..plugins import Realtime, MarkerCluster
+import folium
+from folium.plugins import Fullscreen, MiniMap, MousePosition
+
+from ..plugins import MarkerCluster, Realtime
 from .config import MapConfig
 
 
@@ -32,24 +34,25 @@ class MapLayers:
             full_screen: Control for toggling fullscreen mode.
             realtime: Realtime layer for displaying live aircraft positions.
         """
-        world_imagery: folium.TileLayer
-        opnvkarte: folium.TileLayer
-        mouse_position: MousePosition
-        cluster_group: MarkerCluster
-        minimap: MiniMap
-        full_screen: Fullscreen
-        realtime: Realtime
-        layer_control: folium.LayerControl
+
+        world_imagery: Optional[folium.TileLayer]
+        opnvkarte: Optional[folium.TileLayer]
+        mouse_position: Optional[MousePosition]
+        cluster_group: Optional[MarkerCluster]
+        minimap: Optional[MiniMap]
+        full_screen: Optional[Fullscreen]
+        realtime: Optional[Realtime]
+        layer_control: Optional[folium.LayerControl]
 
         @classmethod
-        def from_scratch(cls) -> 'MapLayers._Layers':
+        def from_scratch(cls) -> "MapLayers._Layers":
             """
             Create a new instance with all attributes set to None.
 
             Returns:
                 A new _Layers instance with all attributes initialized to None.
             """
-            return cls(**dict.fromkeys(cls.__annotations__.keys(), None))
+            return cls(**{f.name: None for f in fields(cls)})
 
     def __init__(self, map_instance: folium.Map, config: MapConfig):
         """
@@ -68,26 +71,26 @@ class MapLayers:
         Initialize all map layers and controls.
         Sets up tile layers, marker clustering, and UI controls.
         """
-        if not hasattr(self, '_layers'):
+        if not hasattr(self, "_layers"):
             self._layers = MapLayers._Layers.from_scratch()
 
         # Initialize tile layers
         self._layers.world_imagery = folium.TileLayer(
             name="World Imagery",
-            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             attr=(
-                'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, '
-                'GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            )
+                "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, "
+                "GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+            ),
         )
         self._layers.opnvkarte = folium.TileLayer(
             name="OPNVKarte",
-            tiles='https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png',
+            tiles="https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png",
             attr=(
                 'Map <a href="https://memomaps.de/">memomaps.de</a> '
                 '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; '
                 '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            )
+            ),
         )
 
         # Initialize control layers
@@ -118,8 +121,8 @@ class MapLayers:
         )
         self._layers.minimap = MiniMap(
             tiles=self._layers.opnvkarte,
-            width="200",
-            height="200",
+            width=200,
+            height=200,
             position="bottomright",
             zoom_level_offset=-3,
             toggle_display=True,
@@ -138,17 +141,21 @@ class MapLayers:
         This method should be called after initialization to display the layers.
         """
         # Base tile layers first
-        self._layers.opnvkarte.add_to(self._map)
-        self._layers.world_imagery.add_to(self._map)
+        if self._layers.opnvkarte and self._layers.world_imagery:
+            self._layers.opnvkarte.add_to(self._map)
+            self._layers.world_imagery.add_to(self._map)
 
         # UI controls that don't depend on other layers
-        self._layers.mouse_position.add_to(self._map)
-        self._layers.minimap.add_to(self._map)
-        self._layers.full_screen.add_to(self._map)
+        if self._layers.mouse_position and self._layers.minimap and self._layers.full_screen:
+            self._layers.mouse_position.add_to(self._map)
+            self._layers.minimap.add_to(self._map)
+            self._layers.full_screen.add_to(self._map)
 
         # Marker cluster and realtime layer
-        self._layers.cluster_group.add_to(self._map)
-        self._layers.realtime.add_to(self._map)
+        if self._layers.cluster_group and self._layers.realtime:
+            self._layers.cluster_group.add_to(self._map)
+            self._layers.realtime.add_to(self._map)
 
         # Layer control last to ensure it can see all available layers
-        self._layers.layer_control.add_to(self._map)
+        if self._layers.layer_control:
+            self._layers.layer_control.add_to(self._map)

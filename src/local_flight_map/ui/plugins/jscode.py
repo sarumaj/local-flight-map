@@ -3,9 +3,10 @@ JavaScript code module for the Local Flight Map application.
 Provides utilities for loading and managing JavaScript code in the map interface.
 """
 
-from folium import JsCode as FoliumJsCode
 from pathlib import Path
-from typing import Union
+from typing import Dict, Type, Union
+
+from folium import JsCode as FoliumJsCode
 
 
 class JsCode(FoliumJsCode):
@@ -19,6 +20,7 @@ class JsCode(FoliumJsCode):
     Attributes:
         js_dir: The directory containing JavaScript files.
     """
+
     js_dir = Path(__file__).parent / "js"
 
     def __init__(self, script: str):
@@ -38,11 +40,12 @@ class JsCode(FoliumJsCode):
 
     @classmethod
     def get_options(
-        cls, *,
+        cls,
+        *,
         prefix: str,
-        value_class: Union[str, "FoliumJsCode"] = FoliumJsCode,
-        value_class_mapping: dict[str, Union[str, "FoliumJsCode"]] = {},
-    ) -> Union[dict[str, "FoliumJsCode"], dict[str, str]]:
+        value_class: Union[Type[str], Type[FoliumJsCode]] = FoliumJsCode,
+        value_class_mapping: Dict[str, Union[Type[str], Type[FoliumJsCode]]] = {},
+    ) -> Dict[str, Union[FoliumJsCode, str]]:
         """
         Get options for JavaScript files with a specific prefix.
 
@@ -66,9 +69,9 @@ class JsCode(FoliumJsCode):
                 ...
             }
         """
-        options = {
+        options: Dict[str, Union[FoliumJsCode, str]] = {
             key: value_class_mapping.get(key, value_class)(cls(filename.name))
             for filename in cls.js_dir.glob(f"{prefix}*.js")
-            for key in (filename.stem[len(prefix):],)
+            for key in (filename.stem[len(prefix) :],)
         }
         return options
