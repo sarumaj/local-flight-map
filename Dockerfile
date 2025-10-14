@@ -21,7 +21,7 @@ FROM python:3.13-slim AS final
 WORKDIR /app
 
 # Copy only necessary files from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create and set up entrypoint script
