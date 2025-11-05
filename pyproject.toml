@@ -21,12 +21,12 @@ dependencies = [
     "aiohttp==3.13.2",
     "asyncio==4.0.0",
     "async-lru==2.0.5",
-    "fastapi==0.120.4",
+    "fastapi==0.121.0",
     "folium==0.20.0",
     "itsdangerous==2.2.0",
     "nest-asyncio==1.6.0",
     "orjson==3.11.4",
-    "pydantic==2.12.3",
+    "pydantic==2.12.4",
     "pydantic-settings==2.11.0",
     "uvicorn==0.38.0"
 ]
