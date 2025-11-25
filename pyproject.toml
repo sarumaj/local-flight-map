@@ -21,7 +21,7 @@ dependencies = [
     "aiohttp==3.13.2",
     "asyncio==4.0.0",
     "async-lru==2.0.5",
-    "fastapi==0.121.3",
+    "fastapi==0.122.0",
     "folium==0.20.0",
     "itsdangerous==2.2.0",
     "nest-asyncio==1.6.0",
