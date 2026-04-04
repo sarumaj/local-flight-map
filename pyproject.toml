@@ -28,7 +28,7 @@ dependencies = [
     "orjson==3.11.8",
     "pydantic==2.12.5",
     "pydantic-settings==2.13.1",
-    "uvicorn==0.42.0"
+    "uvicorn==0.43.0"
 ]
 
 [project.scripts]
