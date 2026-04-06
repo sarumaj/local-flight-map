@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.14-slim AS builder
+FROM python:3.14-slim
 
 WORKDIR /app
 
@@ -14,15 +14,6 @@ COPY src/ src/
 
 # Install the project and its dependencies
 RUN pip install --no-cache-dir .
-
-# Final stage
-FROM python:3.14-slim AS final
-
-WORKDIR /app
-
-# Copy only necessary files from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create and set up entrypoint script
 RUN <<EOF cat > /entrypoint.sh
