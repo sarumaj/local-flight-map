@@ -24,7 +24,7 @@ async def hexdb_client():
 
 
 class TestHexDbClient:
-    @pytest.mark.asyncio
+
     async def test_get_aircraft_information(self, hexdb_client: HexDbClient):
         # Mock response data
         mock_data = {
@@ -66,7 +66,6 @@ class TestHexDbClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/api/v1/aircraft/a83547")
 
-    @pytest.mark.asyncio
     async def test_get_airport_information(self, hexdb_client: HexDbClient):
         # Mock response data
         mock_data = cast(
@@ -110,7 +109,6 @@ class TestHexDbClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/api/v1/airport/icao/kjfk")
 
-    @pytest.mark.asyncio
     async def test_get_route_information(self, hexdb_client: HexDbClient):
         # Mock response data
         mock_data = cast(
@@ -147,7 +145,6 @@ class TestHexDbClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/api/v1/route/icao/swa123")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
@@ -167,7 +164,6 @@ class TestHexDbClient:
                 # Verify the result is None
                 assert result is None
 
-    @pytest.mark.asyncio
     async def test_get_airport_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
@@ -186,7 +182,6 @@ class TestHexDbClient:
                 # Verify the result is None
                 assert result is None
 
-    @pytest.mark.asyncio
     async def test_get_route_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
@@ -206,7 +201,6 @@ class TestHexDbClient:
                 # Verify the result is None
                 assert result is None
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_information_error(self, hexdb_client: HexDbClient):
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()

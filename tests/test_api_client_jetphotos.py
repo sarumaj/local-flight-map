@@ -26,7 +26,7 @@ def _mock_response(*, text: str = "", content: bytes = b"", content_type: str = 
 
 
 class TestJetPhotosClient:
-    @pytest.mark.asyncio
+
     async def test_get_aircraft_photo(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
         registration = "N12345"
@@ -88,7 +88,6 @@ class TestJetPhotosClient:
             ]
         )
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_photo_not_found_on_search_page(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
 
@@ -100,7 +99,6 @@ class TestJetPhotosClient:
         assert result is None
         assert mock_scraper.get.call_count == 1
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_photo_not_found_on_details_page(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
 
@@ -120,7 +118,6 @@ class TestJetPhotosClient:
         assert result is None
         assert mock_scraper.get.call_count == 2
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_photo_error_propagation(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
 
@@ -131,7 +128,6 @@ class TestJetPhotosClient:
         with pytest.raises(RuntimeError, match="JetPhotos unavailable"):
             await client.get_aircraft_photo("N12345")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_photo_is_cached(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
 
@@ -159,7 +155,6 @@ class TestJetPhotosClient:
         assert first is second
         assert mock_scraper.get.call_count == 3
 
-    @pytest.mark.asyncio
     async def test_context_manager_closes_scraper(self, jetphotos_client: tuple[JetPhotosClient, Mock]):
         client, mock_scraper = jetphotos_client
 

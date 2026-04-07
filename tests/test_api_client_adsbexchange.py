@@ -94,7 +94,7 @@ def get_mock_response_data() -> Dict[str, Any]:
 
 
 class TestAdsbExchangeClient:
-    @pytest.mark.asyncio
+
     async def test_get_aircraft_by_registration(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -179,7 +179,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/registration/N12345")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_by_icao24(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -211,7 +210,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/icao/a83547")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_by_callsign(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -243,7 +241,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/callsign/swa123")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_by_squawk(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -274,7 +271,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/sqk/1234")
 
-    @pytest.mark.asyncio
     async def test_get_military_aircrafts(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -304,7 +300,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/mil")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_within_range(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -335,7 +330,6 @@ class TestAdsbExchangeClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/v2/lat/40.641300/lon/-73.778100/dist/100.000")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_not_found(self, adsbexchange_client: AdsbExchangeClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
@@ -354,7 +348,6 @@ class TestAdsbExchangeClient:
                 # Verify the result is None
                 assert result is None
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_error(self, adsbexchange_client: AdsbExchangeClient):
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()

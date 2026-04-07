@@ -167,7 +167,7 @@ class TestResponseObject:
 
 
 class TestBaseClient:
-    @pytest.mark.asyncio
+
     async def test_context_manager(self):
         client = BaseClient()
         async with client as c:
@@ -175,7 +175,6 @@ class TestBaseClient:
             assert isinstance(c._session, aiohttp.ClientSession)  # type: ignore[reportPrivateUsage]
         assert hasattr(c, "_session") is False  # Session should be closed and deleted
 
-    @pytest.mark.asyncio
     async def test_handle_response_404(self):
         client = BaseClient()
         mock_raise_for_status = Mock(return_value=None)
@@ -188,7 +187,6 @@ class TestBaseClient:
         assert result is None
         mock_raise_for_status.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_handle_response_success(self):
         client = BaseClient()
         mock_json = AsyncMock(return_value={"data": "test"})
@@ -208,7 +206,6 @@ class TestBaseClient:
         mock_json.assert_called_once()
         mock_raise_for_status.assert_called_once()
 
-    @pytest.mark.asyncio
     async def test_handle_response_error(self):
         client = BaseClient()
         mock_raise_for_status = Mock(

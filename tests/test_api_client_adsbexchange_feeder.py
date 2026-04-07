@@ -97,7 +97,7 @@ def get_mock_response_data() -> Dict[str, Any]:
 
 
 class TestAdsbExchangeFeederClient:
-    @pytest.mark.asyncio
+
     async def test_get_aircraft_from_adsbexchange_feeder(self, adsbexchange_feeder_client: AdsbExchangeFeederClient):
         # Mock response data
         mock_data = get_mock_response_data()
@@ -181,7 +181,6 @@ class TestAdsbExchangeFeederClient:
                 # Verify the API call
                 mock_session.get.assert_called_once_with("/uuid/?feed=test-uuid")
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_from_adsbexchange_feeder_no_uuid(
         self, adsbexchange_feeder_client_empty: AdsbExchangeFeederClient
     ):
@@ -189,7 +188,6 @@ class TestAdsbExchangeFeederClient:
         with pytest.raises(ValueError):
             await adsbexchange_feeder_client_empty.get_aircraft_from_adsbexchange_feeder()
 
-    @pytest.mark.asyncio
     async def test_get_aircraft_from_adsbexchange_feeder_not_found(
         self, adsbexchange_feeder_client: AdsbExchangeFeederClient
     ):
