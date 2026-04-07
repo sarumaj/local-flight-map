@@ -1,4 +1,5 @@
-# pyright: basic
+# type: basic
+from typing import Any, Dict
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
@@ -23,7 +24,7 @@ async def adsbexchange_client():
         await client.close()
 
 
-def get_mock_aircraft_data():
+def get_mock_aircraft_data() -> Dict[str, Any]:
     """Helper function to get complete mock aircraft data"""
     return {
         "hex": "a83547",
@@ -80,7 +81,7 @@ def get_mock_aircraft_data():
     }
 
 
-def get_mock_response_data():
+def get_mock_response_data() -> Dict[str, Any]:
     """Helper function to get complete mock response data"""
     return {
         "ac": [get_mock_aircraft_data()],
@@ -94,7 +95,7 @@ def get_mock_response_data():
 
 class TestAdsbExchangeClient:
     @pytest.mark.asyncio
-    async def test_get_aircraft_by_registration(self, adsbexchange_client):
+    async def test_get_aircraft_by_registration(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -179,7 +180,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/registration/N12345")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_by_icao24(self, adsbexchange_client):
+    async def test_get_aircraft_by_icao24(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -211,7 +212,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/icao/a83547")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_by_callsign(self, adsbexchange_client):
+    async def test_get_aircraft_by_callsign(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -243,7 +244,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/callsign/swa123")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_by_squawk(self, adsbexchange_client):
+    async def test_get_aircraft_by_squawk(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -274,7 +275,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/sqk/1234")
 
     @pytest.mark.asyncio
-    async def test_get_military_aircrafts(self, adsbexchange_client):
+    async def test_get_military_aircrafts(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -304,7 +305,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/mil")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_within_range(self, adsbexchange_client):
+    async def test_get_aircraft_within_range(self, adsbexchange_client: AdsbExchangeClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -335,7 +336,7 @@ class TestAdsbExchangeClient:
                 mock_session.get.assert_called_once_with("/v2/lat/40.641300/lon/-73.778100/dist/100.000")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_not_found(self, adsbexchange_client):
+    async def test_get_aircraft_not_found(self, adsbexchange_client: AdsbExchangeClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
@@ -354,14 +355,14 @@ class TestAdsbExchangeClient:
                 assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_error(self, adsbexchange_client):
+    async def test_get_aircraft_error(self, adsbexchange_client: AdsbExchangeClient):
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
         mock_response.raise_for_status = Mock(
             side_effect=aiohttp.ClientResponseError(
                 request_info=Mock(real_url="https://adsbexchange-com1.p.rapidapi.com/v2/registration/N12345"),
-                history=None,  # pyright: ignore[reportArgumentType]
+                history=None,  # type: ignore[reportArgumentType]
                 status=500,
                 message="Server Error",
             )

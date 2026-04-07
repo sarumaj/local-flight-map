@@ -13,21 +13,22 @@ const FlightMarkerUtils = {
    */
   calculateMarkerSize(props) {
     if (!props) {
-      console.warn('No properties provided for marker size calculation');
+      console.warn("No properties provided for marker size calculation");
       return 48;
     }
 
     const altitude = props.baro_altitude || props.geom_altitude || 0;
-    if (altitude === 'ground' || altitude === 0) return 20;
-    if (!altitude || typeof altitude !== 'number' || isNaN(altitude)) {
-      console.warn('Invalid altitude value for marker size:', altitude);
+    if (altitude === "ground" || altitude === 0) return 20;
+    if (!altitude || typeof altitude !== "number" || isNaN(altitude)) {
+      console.warn("Invalid altitude value for marker size:", altitude);
       return 48;
     }
 
     const minAlt = -1000;
     const maxAlt = 60000;
     const boundedAltitude = Math.min(Math.max(altitude, minAlt), maxAlt);
-    const normalizedSize = ((boundedAltitude - minAlt) / (maxAlt - minAlt)) * (80 - 20) + 20;
+    const normalizedSize =
+      ((boundedAltitude - minAlt) / (maxAlt - minAlt)) * (80 - 20) + 20;
     return Math.min(Math.max(normalizedSize, 20), 80);
   },
 
@@ -40,18 +41,20 @@ const FlightMarkerUtils = {
    */
   calculateVerticalSpeedIndicator(props) {
     if (!props) {
-      console.warn('No properties provided for vertical speed calculation');
-      return { vsColor: '#a0a0a0', vsSymbol: '→' };
+      console.warn("No properties provided for vertical speed calculation");
+      return { vsColor: "#a0a0a0", vsSymbol: "→" };
     }
 
-    const vs = props.baro_rate_of_climb_descent || props.geom_rate_of_climb_descent || 0;
-    if (typeof vs !== 'number' || isNaN(vs)) {
-      console.warn('Invalid vertical speed value:', vs);
-      return { vsColor: '#a0a0a0', vsSymbol: '→' };
+    const vs =
+      props.baro_rate_of_climb_descent || props.geom_rate_of_climb_descent || 0;
+    if (typeof vs !== "number" || isNaN(vs)) {
+      console.warn("Invalid vertical speed value:", vs);
+      return { vsColor: "#a0a0a0", vsSymbol: "→" };
     }
 
-    const vsColor = Math.abs(vs) < 100 ? '#a0a0a0' : (vs > 0 ? '#4caf50' : '#f44336');
-    const vsSymbol = Math.abs(vs) < 100 ? '→' : (vs > 0 ? '↑' : '↓');
+    const vsColor =
+      Math.abs(vs) < 100 ? "#a0a0a0" : vs > 0 ? "#4caf50" : "#f44336";
+    const vsSymbol = Math.abs(vs) < 100 ? "→" : vs > 0 ? "↑" : "↓";
     return { vsColor, vsSymbol };
   },
 
@@ -92,7 +95,7 @@ const FlightMarkerUtils = {
             font-weight: 500;
             font-size: 12px;
             font-weight: bold;
-        `
+        `,
   },
 
   /**
@@ -103,19 +106,19 @@ const FlightMarkerUtils = {
    */
   generateFlightInfoHtml(props, markerSize) {
     if (!props) {
-      console.warn('No properties provided for flight info generation');
-      return '';
+      console.warn("No properties provided for flight info generation");
+      return "";
     }
 
-    if (!markerSize || typeof markerSize !== 'number' || isNaN(markerSize)) {
-      console.warn('Invalid marker size for flight info:', markerSize);
+    if (!markerSize || typeof markerSize !== "number" || isNaN(markerSize)) {
+      console.warn("Invalid marker size for flight info:", markerSize);
       markerSize = 48; // Default size
     }
 
     const altitude = props.baro_altitude || props.geom_altitude || 0;
     const groundSpeed = props.ground_speed || props.velocity || 0;
     const { vsColor, vsSymbol } = this.calculateVerticalSpeedIndicator(props);
-    const flightLevel = altitude === 'ground' ? 0 : Math.round(altitude / 100);
+    const flightLevel = altitude === "ground" ? 0 : Math.round(altitude / 100);
 
     return `
       <div class="flight-info" style="top: -${markerSize}px;">
@@ -133,14 +136,14 @@ const FlightMarkerUtils = {
    */
   addIconShadow(html) {
     if (!html) {
-      console.warn('No HTML provided for icon shadow');
-      return '';
+      console.warn("No HTML provided for icon shadow");
+      return "";
     }
     return html.replace(
       /<img([^>]+)style="([^"]+)"/,
-      '<img$1style="$2; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));"'
+      '<img$1style="$2; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));"',
     );
-  }
+  },
 };
 
 /**
@@ -152,7 +155,7 @@ const configCache = {
   center: null,
   radius: null,
   lastFetch: 0,
-  fetchPromise: null
+  fetchPromise: null,
 };
 
 /**
@@ -176,18 +179,28 @@ async function getConfig() {
   const cacheDuration = 60000; // Cache for 1 minute
 
   // Force a fresh fetch if any required property is missing
-  if (!configCache.bounds || !configCache.interval || !configCache.center || !configCache.radius) {
+  if (
+    !configCache.bounds ||
+    !configCache.interval ||
+    !configCache.center ||
+    !configCache.radius
+  ) {
     configCache.lastFetch = 0; // Force cache miss
   }
 
   // Return cached value if it's still valid
-  if (configCache.interval && configCache.bounds && configCache.center && configCache.radius &&
-    (now - configCache.lastFetch) < cacheDuration) {
+  if (
+    configCache.interval &&
+    configCache.bounds &&
+    configCache.center &&
+    configCache.radius &&
+    now - configCache.lastFetch < cacheDuration
+  ) {
     return {
       interval: configCache.interval,
       bounds: configCache.bounds,
       center: configCache.center,
-      radius: configCache.radius
+      radius: configCache.radius,
     };
   }
 
@@ -197,17 +210,22 @@ async function getConfig() {
   }
 
   // Start new fetch
-  configCache.fetchPromise = fetch('/ui/config')
-    .then(response => {
+  configCache.fetchPromise = fetch("/ui/config")
+    .then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return response.json();
     })
-    .then(config => {
+    .then((config) => {
       // Check if all required properties are present
-      if (!config.bounds || !config.interval || !config.center || !config.radius) {
-        console.warn('Received incomplete config:', config);
+      if (
+        !config.bounds ||
+        !config.interval ||
+        !config.center ||
+        !config.radius
+      ) {
+        console.warn("Received incomplete config:", config);
         configCache.lastFetch = 0; // Force another fetch
         return getConfig(); // Recursively try again
       }
@@ -223,18 +241,18 @@ async function getConfig() {
         interval: config.interval,
         bounds: config.bounds,
         center: config.center,
-        radius: config.radius
+        radius: config.radius,
       };
     })
-    .catch(error => {
-      console.error('Error fetching config:', error);
+    .catch((error) => {
+      console.error("Error fetching config:", error);
       configCache.fetchPromise = null;
       // Return default values if fetch fails
       return {
         interval: 200,
         bounds: null,
         center: null,
-        radius: null
+        radius: null,
       };
     });
 
@@ -242,12 +260,14 @@ async function getConfig() {
 }
 
 // Clear cache on page load
-window.addEventListener('load', clearConfigCache);
+window.addEventListener("load", clearConfigCache);
 
 // Exports
 window.calculateMarkerSize = FlightMarkerUtils.calculateMarkerSize;
-window.calculateVerticalSpeedIndicator = FlightMarkerUtils.calculateVerticalSpeedIndicator;
-window.generateFlightInfoHtml = FlightMarkerUtils.generateFlightInfoHtml.bind(FlightMarkerUtils);
+window.calculateVerticalSpeedIndicator =
+  FlightMarkerUtils.calculateVerticalSpeedIndicator;
+window.generateFlightInfoHtml =
+  FlightMarkerUtils.generateFlightInfoHtml.bind(FlightMarkerUtils);
 window.addIconShadow = FlightMarkerUtils.addIconShadow;
 window.getConfig = getConfig;
-window.clearConfigCache = clearConfigCache; 
+window.clearConfigCache = clearConfigCache;

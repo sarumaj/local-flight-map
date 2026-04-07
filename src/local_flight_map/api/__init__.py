@@ -9,10 +9,11 @@ from .adsbexchange import AdsbExchangeClient, AdsbExchangeConfig
 from .adsbexchange.feed import AdsbExchangeFeederClient, AdsbExchangeFeederConfig
 from .base import BBox, Location
 from .hexdb import HexDbClient, HexDbConfig
+from .jetphotos import JetPhotosClient, JetPhotosConfig
 from .opensky import OpenSkyClient, OpenSkyConfig
 
 
-class ApiConfig(OpenSkyConfig, HexDbConfig, AdsbExchangeConfig, AdsbExchangeFeederConfig):
+class ApiConfig(OpenSkyConfig, HexDbConfig, AdsbExchangeConfig, AdsbExchangeFeederConfig, JetPhotosConfig):
     """
     Combined configuration class for all API clients.
     Inherits configuration from OpenSky, HexDB, and ADSBExchange.
@@ -26,6 +27,7 @@ class ApiClients(NamedTuple):
 
     opensky_client: OpenSkyClient
     hexdb_client: HexDbClient
+    jetphotos_client: JetPhotosClient
     adsbexchange_client: AdsbExchangeClient
     adsbexchange_feed_client: AdsbExchangeFeederClient
 
@@ -43,4 +45,6 @@ __all__ = [
     "AdsbExchangeFeederConfig",
     "BBox",
     "Location",
+    "JetPhotosClient",
+    "JetPhotosConfig",
 ]

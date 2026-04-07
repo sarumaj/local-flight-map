@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Self
 
 import aiohttp
 
@@ -45,7 +45,7 @@ class BaseClient:
             await self._session.close()
             del self._session
 
-    async def __aenter__(self) -> "BaseClient":
+    async def __aenter__(self) -> Self:
         """
         Enter the async context manager.
 

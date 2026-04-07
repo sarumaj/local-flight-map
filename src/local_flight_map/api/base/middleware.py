@@ -82,7 +82,7 @@ class OAuth2AuthMiddleware:
         if self._timeout:
             session_kwargs["timeout"] = self._timeout
 
-        async with aiohttp.ClientSession(**session_kwargs) as session:  # pyright: ignore[reportUnknownArgumentType]
+        async with aiohttp.ClientSession(**session_kwargs) as session:  # type: ignore[reportUnknownArgumentType]
             try:
                 resp = await session.post(
                     self._auth_url,

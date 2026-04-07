@@ -7,25 +7,25 @@
  */
 (responseHandler, errorHandler) => {
   // Create loading overlay and spinner elements only once
-  let overlay = document.querySelector('.loading-overlay');
-  let spinner = document.querySelector('.loading-spinner');
+  let overlay = document.querySelector(".loading-overlay");
+  let spinner = document.querySelector(".loading-spinner");
 
   if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.className = 'loading-overlay';
+    overlay = document.createElement("div");
+    overlay.className = "loading-overlay";
     document.body.appendChild(overlay);
   }
 
   if (!spinner) {
-    spinner = document.createElement('div');
-    spinner.className = 'loading-spinner';
+    spinner = document.createElement("div");
+    spinner.className = "loading-spinner";
     document.body.appendChild(spinner);
   }
 
   // Add spinner animation if not already added
-  if (!document.querySelector('#spinner-animation')) {
-    const style = document.createElement('style');
-    style.id = 'spinner-animation';
+  if (!document.querySelector("#spinner-animation")) {
+    const style = document.createElement("style");
+    style.id = "spinner-animation";
     style.textContent = `
       @keyframes spin {
         0% { transform: translate(-50%, -50%) rotate(0deg); }
@@ -44,11 +44,11 @@
    */
   function showSpinner() {
     // Don't show spinner if cookie consent modal is visible or if already visible
-    if (document.getElementById('cookie-consent-modal') || isSpinnerVisible) {
+    if (document.getElementById("cookie-consent-modal") || isSpinnerVisible) {
       return;
     }
-    overlay.style.display = 'block';
-    spinner.style.display = 'block';
+    overlay.style.display = "block";
+    spinner.style.display = "block";
     isSpinnerVisible = true;
   }
 
@@ -60,8 +60,8 @@
       clearTimeout(spinnerTimeout);
       spinnerTimeout = null;
     }
-    overlay.style.display = 'none';
-    spinner.style.display = 'none';
+    overlay.style.display = "none";
+    spinner.style.display = "none";
     isSpinnerVisible = false;
     fetchStartTime = null;
   }
@@ -72,46 +72,49 @@
    */
   function showErrorOverlay(message) {
     // Remove existing error overlay if present
-    const existingError = document.querySelector('.error-overlay');
+    const existingError = document.querySelector(".error-overlay");
     if (existingError) {
       existingError.remove();
     }
 
     // Create error overlay
-    const errorOverlay = document.createElement('div');
-    errorOverlay.className = 'error-overlay';
+    const errorOverlay = document.createElement("div");
+    errorOverlay.className = "error-overlay";
 
-    const errorContent = document.createElement('div');
-    errorContent.className = 'error-content';
+    const errorContent = document.createElement("div");
+    errorContent.className = "error-content";
 
-    const errorIcon = document.createElement('div');
-    errorIcon.className = 'error-icon';
-    errorIcon.innerHTML = '⚠️';
+    const errorIcon = document.createElement("div");
+    errorIcon.className = "error-icon";
+    errorIcon.innerHTML = "⚠️";
 
-    const errorTitle = document.createElement('h2');
-    errorTitle.className = 'error-title';
-    errorTitle.textContent = 'Service Unavailable';
+    const errorTitle = document.createElement("h2");
+    errorTitle.className = "error-title";
+    errorTitle.textContent = "Service Unavailable";
 
-    const errorMessage = document.createElement('p');
-    errorMessage.className = 'error-message';
+    const errorMessage = document.createElement("p");
+    errorMessage.className = "error-message";
     errorMessage.textContent = message;
 
-    const errorButtons = document.createElement('div');
-    errorButtons.className = 'error-buttons';
+    const errorButtons = document.createElement("div");
+    errorButtons.className = "error-buttons";
 
-    const retryButton = document.createElement('button');
-    retryButton.className = 'error-button retry';
-    retryButton.textContent = 'Retry';
+    const retryButton = document.createElement("button");
+    retryButton.className = "error-button retry";
+    retryButton.textContent = "Retry";
 
-    const closeButton = document.createElement('button');
-    closeButton.className = 'error-button close';
-    closeButton.textContent = 'Close';
+    const closeButton = document.createElement("button");
+    closeButton.className = "error-button close";
+    closeButton.textContent = "Close";
 
-    const githubButton = document.createElement('button');
-    githubButton.className = 'error-button github';
-    githubButton.textContent = 'Open GitHub Issue';
+    const githubButton = document.createElement("button");
+    githubButton.className = "error-button github";
+    githubButton.textContent = "Open GitHub Issue";
     githubButton.onclick = () => {
-      window.open('https://github.com/sarumaj/local-flight-map/issues', '_blank');
+      window.open(
+        "https://github.com/sarumaj/local-flight-map/issues",
+        "_blank",
+      );
     };
 
     retryButton.onclick = () => {
@@ -146,32 +149,35 @@
     fetchStartTime = Date.now();
 
     // Get the current config to determine the interval
-    window.getConfig().then(config => {
-      if (!config || !config.interval) {
-        console.warn('Invalid config for spinner timeout:', config);
-        return;
-      }
-
-      // Set a timeout to show the spinner if loading takes longer than the interval
-      spinnerTimeout = setTimeout(() => {
-        // Only show spinner if the fetch is still ongoing
-        if (fetchStartTime) {
-          showSpinner();
+    window
+      .getConfig()
+      .then((config) => {
+        if (!config || !config.interval) {
+          console.warn("Invalid config for spinner timeout:", config);
+          return;
         }
-      }, config.interval);
-    }).catch(error => {
-      console.error('Error getting config for spinner timeout:', error);
-    });
 
-    fetch('/service/aircrafts', {
-      credentials: 'include'
+        // Set a timeout to show the spinner if loading takes longer than the interval
+        spinnerTimeout = setTimeout(() => {
+          // Only show spinner if the fetch is still ongoing
+          if (fetchStartTime) {
+            showSpinner();
+          }
+        }, config.interval);
+      })
+      .catch((error) => {
+        console.error("Error getting config for spinner timeout:", error);
+      });
+
+    fetch("/service/aircrafts", {
+      credentials: "include",
     })
       .then((response) => {
         // Check for X-Status-Code header first
-        const statusCode = response.headers.get('X-Status-Code');
+        const statusCode = response.headers.get("X-Status-Code");
 
-        if (statusCode === '500') {
-          throw new Error('BACKEND_SERVICE_UNAVAILABLE');
+        if (statusCode === "500") {
+          throw new Error("BACKEND_SERVICE_UNAVAILABLE");
         }
 
         if (!response.ok) {
@@ -193,8 +199,10 @@
         }
 
         // Handle specific backend service unavailable error
-        if (error.message === 'BACKEND_SERVICE_UNAVAILABLE') {
-          showErrorOverlay('The backend service providing the real-time data is not available. Please try again later or contact the developer by opening an issue on GitHub if the problem persists.');
+        if (error.message === "BACKEND_SERVICE_UNAVAILABLE") {
+          showErrorOverlay(
+            "The backend service providing the real-time data is not available. Please try again later or contact the developer by opening an issue on GitHub if the problem persists.",
+          );
         } else {
           errorHandler(error);
         }
@@ -202,10 +210,10 @@
   }
 
   // Listen for bounds updates
-  window.addEventListener('boundsUpdated', function (event) {
+  window.addEventListener("boundsUpdated", function (event) {
     fetchData();
   });
 
   // Initial fetch
   fetchData();
-}
+};

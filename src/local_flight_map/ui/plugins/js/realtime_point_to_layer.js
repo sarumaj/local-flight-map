@@ -12,14 +12,17 @@
  */
 (feature, latlng) => {
   // Only create markers for point features
-  if (feature.geometry.type !== 'Point') {
-    console.warn('Skipping non-point feature:', feature.geometry.type);
+  if (feature.geometry.type !== "Point") {
+    console.warn("Skipping non-point feature:", feature.geometry.type);
     return null;
   }
 
   const markerSize = calculateMarkerSize(feature.properties);
   if (!markerSize) {
-    console.warn('Invalid marker size calculated for feature:', feature.properties);
+    console.warn(
+      "Invalid marker size calculated for feature:",
+      feature.properties,
+    );
   }
 
   /**
@@ -27,14 +30,49 @@
    * @type {Array<{src: string, initial_rotation: number, weight: number, view_angle: number}>}
    */
   const icons = [
-    { src: '/ui/static/icons/civil_helicopter.png', initial_rotation: 135, weight: 1, view_angle: 45 },
-    { src: '/ui/static/icons/civil_plane_1.png', initial_rotation: 45, weight: 8, view_angle: 90 },
-    { src: '/ui/static/icons/civil_plane_2.png', initial_rotation: 135, weight: 8, view_angle: 45 },
-    { src: '/ui/static/icons/civil_plane_3.png', initial_rotation: 45, weight: 8, view_angle: 90 },
-    { src: '/ui/static/icons/mil_plane_1.png', initial_rotation: 45, weight: 1, view_angle: 90 },
-    { src: '/ui/static/icons/mil_plane_2.png', initial_rotation: 0, weight: 1, view_angle: 90 },
-    { src: '/ui/static/icons/police_helicopter.png', initial_rotation: 135, weight: 1, view_angle: 45 },
-  ]
+    {
+      src: "/ui/static/icons/civil_helicopter.png",
+      initial_rotation: 135,
+      weight: 1,
+      view_angle: 45,
+    },
+    {
+      src: "/ui/static/icons/civil_plane_1.png",
+      initial_rotation: 45,
+      weight: 8,
+      view_angle: 90,
+    },
+    {
+      src: "/ui/static/icons/civil_plane_2.png",
+      initial_rotation: 135,
+      weight: 8,
+      view_angle: 45,
+    },
+    {
+      src: "/ui/static/icons/civil_plane_3.png",
+      initial_rotation: 45,
+      weight: 8,
+      view_angle: 90,
+    },
+    {
+      src: "/ui/static/icons/mil_plane_1.png",
+      initial_rotation: 45,
+      weight: 1,
+      view_angle: 90,
+    },
+    {
+      src: "/ui/static/icons/mil_plane_2.png",
+      initial_rotation: 0,
+      weight: 1,
+      view_angle: 90,
+    },
+    {
+      src: "/ui/static/icons/police_helicopter.png",
+      initial_rotation: 135,
+      weight: 1,
+      view_angle: 45,
+    },
+  ];
 
   // Calculate total weight
   const totalWeight = icons.reduce((sum, icon) => sum + icon.weight, 0);
@@ -57,7 +95,7 @@
    * @type {L.DivIcon}
    */
   var icon = L.divIcon({
-    className: 'rotated-icon',
+    className: "rotated-icon",
     html: window.addIconShadow(`
       <div class="aircraft-marker" style="width: ${markerSize}px; height: ${markerSize}px;">
         <img class="aircraft-icon" src="${selectedIcon.src}" 
@@ -72,7 +110,7 @@
       </div>
     `),
     iconSize: [markerSize, markerSize],
-    iconAnchor: [markerSize / 2, markerSize / 2]
+    iconAnchor: [markerSize / 2, markerSize / 2],
   });
 
   /**
@@ -85,31 +123,31 @@
     riseOnHover: true,
     autoPanOnFocus: true,
     keyboard: true,
-    title: feature.properties.icao24_code || 'Aircraft'
+    title: feature.properties.icao24_code || "Aircraft",
   });
-  marker.tags = (feature.properties.tags || []).filter(tag => tag.trim());
+  marker.tags = (feature.properties.tags || []).filter((tag) => tag.trim());
 
   // Create distance line
   var distanceLine = L.polyline([], {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: "rgba(255, 255, 255, 0.9)",
     weight: 3,
     opacity: 0.9,
-    dashArray: '5, 10',
+    dashArray: "5, 10",
     interactive: false,
-    className: 'distance-line'
+    className: "distance-line",
   });
 
   // Create distance label
   var distanceLabel = L.divIcon({
-    className: 'distance-label',
+    className: "distance-label",
     html: `<div><span class="distance-text"></span></div>`,
     iconSize: [150, 20],
-    iconAnchor: [75, 10]
+    iconAnchor: [75, 10],
   });
 
   var distanceMarker = L.marker([0, 0], {
     icon: distanceLabel,
-    interactive: false
+    interactive: false,
   });
 
   /**
@@ -119,11 +157,11 @@
    */
   async function updateDistanceLine(markerLatLng, map) {
     if (!markerLatLng) {
-      console.warn('No marker position provided for distance line');
+      console.warn("No marker position provided for distance line");
       return;
     }
     if (!map) {
-      console.warn('No map instance provided for distance line');
+      console.warn("No map instance provided for distance line");
       return;
     }
 
@@ -141,12 +179,12 @@
       if (!radarPosition) {
         const config = await window.getConfig();
         if (!config || !config.bounds) {
-          console.warn('Failed to get radar position');
+          console.warn("Failed to get radar position");
           return;
         }
         radarPosition = L.latLng(
           (config.bounds.north + config.bounds.south) / 2,
-          (config.bounds.east + config.bounds.west) / 2
+          (config.bounds.east + config.bounds.west) / 2,
         );
       }
 
@@ -168,7 +206,7 @@
         if (popup.isOpen()) {
           const popupElement = popup.getElement();
           if (popupElement) {
-            const distanceInfo = popupElement.querySelector('.distance-info');
+            const distanceInfo = popupElement.querySelector(".distance-info");
             if (distanceInfo) {
               distanceInfo.textContent = `${(Math.round(distanceM) / 1000).toFixed(1)} km (${distanceNm.toFixed(1)} NM)`;
             }
@@ -182,17 +220,19 @@
 
         const labelElement = distanceMarker.getElement();
         if (!labelElement) {
-          console.warn('Failed to get label element for distance marker - recreating marker');
+          console.warn(
+            "Failed to get label element for distance marker - recreating marker",
+          );
           // Recreate the marker if element is not available
           distanceMarker = L.marker([0, 0], {
             icon: distanceLabel,
-            interactive: false
+            interactive: false,
           }).addTo(map);
         }
 
-        const textSpan = labelElement?.querySelector('.distance-text');
+        const textSpan = labelElement?.querySelector(".distance-text");
         if (!textSpan) {
-          console.warn('Failed to find distance text span in label element');
+          console.warn("Failed to find distance text span in label element");
           return;
         }
         textSpan.textContent = labelHtml;
@@ -202,17 +242,17 @@
         const midLng = (radarPosition.lng + markerLatLng.lng) / 2;
         distanceMarker.setLatLng([midLat, midLng]);
       } catch (layerError) {
-        console.error('Error updating distance layers:', layerError);
+        console.error("Error updating distance layers:", layerError);
         // Try to recreate the line if it's broken
         if (!(distanceLine instanceof L.Polyline)) {
-          console.warn('Recreating broken distance line');
+          console.warn("Recreating broken distance line");
           distanceLine = L.polyline([], {
-            color: 'rgba(255, 255, 255, 0.9)',
+            color: "rgba(255, 255, 255, 0.9)",
             weight: 3,
             opacity: 0.9,
-            dashArray: '5, 10',
+            dashArray: "5, 10",
             interactive: false,
-            className: 'distance-line'
+            className: "distance-line",
           });
           distanceLine.setLatLngs([radarPosition, markerLatLng]);
           distanceLine.addTo(map);
@@ -229,7 +269,7 @@
         }, config.interval);
       }
     } catch (error) {
-      console.error('Error updating distance line:', error);
+      console.error("Error updating distance line:", error);
     }
   }
 
@@ -240,9 +280,9 @@
    */
   function snakeToTitleCase(str) {
     return str
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   }
 
   /**
@@ -251,31 +291,86 @@
    * @returns {string} HTML content for the popup
    */
   function createPopupContent(props) {
-    const tags = (props["tags"] || []).filter(tag => tag.trim());
+    const tags = (props["tags"] || []).filter((tag) => tag.trim());
+    let registration = null;
+    for (const tag of tags) {
+      const [rawKey, ...rawValueParts] = tag.split(":");
+      const key = (rawKey || "").trim().toLowerCase();
+      const value = rawValueParts.join(":").trim();
+      if (!value) {
+        continue;
+      }
+      if (key === "registration" || key === "reg") {
+        registration = value;
+        break;
+      }
+    }
+    if (!registration) {
+      const fallbackRegistration = props.registration || props.reg;
+      if (
+        typeof fallbackRegistration === "string" &&
+        fallbackRegistration.trim()
+      ) {
+        registration = fallbackRegistration.trim();
+      }
+    }
+    const photoBlock = registration
+      ? `
+        <div class="aircraft-photo-container">
+          <img
+            class="aircraft-photo-placeholder"
+            src="/ui/static/img/placeholder.png"
+            alt="Loading aircraft photo"
+          />
+          <img
+            class="aircraft-photo"
+            src="/service/aircraft/photo/${encodeURIComponent(registration)}"
+            alt="Aircraft ${registration}"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+            onload="const parent=this.parentElement; this.classList.add('is-loaded'); const loader=parent.querySelector('.aircraft-photo-loading'); if (loader) { loader.remove(); } const placeholder=parent.querySelector('.aircraft-photo-placeholder'); if (placeholder) { placeholder.remove(); }"
+            onerror="const parent=this.parentElement; const loader=parent.querySelector('.aircraft-photo-loading'); if (loader) { loader.remove(); } this.remove();"
+          />
+          <div class="aircraft-photo-loading" aria-hidden="true">
+            <span class="aircraft-photo-spinner"></span>
+          </div>
+        </div>`
+      : `
+        <div class="aircraft-photo-container">
+          <img
+            class="aircraft-photo-placeholder"
+            src="/ui/static/img/unavailable.png"
+            alt="Photo unavailable"
+          />
+        </div>`;
     var content = `
       <div class="aircraft-info">
         <h3>Aircraft Information</h3>
+        ${photoBlock}
         <div class="tag-container">
-          ${tags.map(tag => {
-      const [key, value] = tag.split(':');
-      return `
+          ${tags
+            .map((tag) => {
+              const [key, value] = tag.split(":");
+              return `
               <span class="tag">
                 <span class="tag-key">${snakeToTitleCase(key)}</span>
                 <span class="tag-value">${value}</span>
               </span>
             `;
-    }).join('')}
+            })
+            .join("")}
         </div>
         <div class="section-title">Position & Distance</div>
         <table>
           <tbody>
             <tr>
               <th>Latitude</th>
-              <td>${props.latitude?.toFixed(6) || 'N/A'}</td>
+              <td>${props.latitude?.toFixed(6) || "N/A"}</td>
             </tr>
             <tr>
               <th>Longitude</th>
-              <td>${props.longitude?.toFixed(6) || 'N/A'}</td>
+              <td>${props.longitude?.toFixed(6) || "N/A"}</td>
             </tr>
             <tr>
               <th>Distance</th>
@@ -285,15 +380,20 @@
         </table>`;
 
     // Add origin section if there are origin properties
-    const originProps = Object.entries(props).filter(([key]) => key.startsWith('origin_'));
+    const originProps = Object.entries(props).filter(([key]) =>
+      key.startsWith("origin_"),
+    );
     if (originProps.length > 0) {
       content += `
         <div class="section-title">Origin</div>
         <table>
           <tbody>`;
       for (const [key, value] of originProps) {
-        const displayKey = snakeToTitleCase(key.replace('origin_', ''));
-        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        const displayKey = snakeToTitleCase(key.replace("origin_", ""));
+        const displayValue =
+          typeof value === "object" && value !== null
+            ? JSON.stringify(value, null, 2)
+            : value;
         content += `
             <tr>
               <th>${displayKey}</th>
@@ -306,15 +406,20 @@
     }
 
     // Add destination section if there are destination properties
-    const destinationProps = Object.entries(props).filter(([key]) => key.startsWith('destination_'));
+    const destinationProps = Object.entries(props).filter(([key]) =>
+      key.startsWith("destination_"),
+    );
     if (destinationProps.length > 0) {
       content += `
         <div class="section-title">Destination</div>
         <table>
           <tbody>`;
       for (const [key, value] of destinationProps) {
-        const displayKey = snakeToTitleCase(key.replace('destination_', ''));
-        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        const displayKey = snakeToTitleCase(key.replace("destination_", ""));
+        const displayValue =
+          typeof value === "object" && value !== null
+            ? JSON.stringify(value, null, 2)
+            : value;
         content += `
             <tr>
               <th>${displayKey}</th>
@@ -327,12 +432,13 @@
     }
 
     // Add remaining properties section
-    const remainingProps = Object.entries(props).filter(([key]) =>
-      !key.startsWith('origin_') &&
-      !key.startsWith('destination_') &&
-      key !== 'tags' &&
-      key !== 'latitude' &&
-      key !== 'longitude'
+    const remainingProps = Object.entries(props).filter(
+      ([key]) =>
+        !key.startsWith("origin_") &&
+        !key.startsWith("destination_") &&
+        key !== "tags" &&
+        key !== "latitude" &&
+        key !== "longitude",
     );
 
     if (remainingProps.length > 0) {
@@ -342,7 +448,10 @@
           <tbody>`;
       for (const [key, value] of remainingProps) {
         const displayKey = snakeToTitleCase(key);
-        const displayValue = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : value;
+        const displayValue =
+          typeof value === "object" && value !== null
+            ? JSON.stringify(value, null, 2)
+            : value;
         content += `
             <tr>
               <th>${displayKey}</th>
@@ -369,7 +478,7 @@
     autoClose: true,
     closeOnEscapeKey: true,
     closeOnClick: true,
-    closeButton: true
+    closeButton: true,
   });
 
   /**
@@ -380,14 +489,14 @@
     var popupElement = popup.getElement();
     var scrollPosition = 0;
     if (popupElement) {
-      var scrollContainer = popupElement.querySelector('.aircraft-info');
+      var scrollContainer = popupElement.querySelector(".aircraft-info");
       if (scrollContainer) {
         scrollPosition = scrollContainer.scrollTop;
       }
     }
     popup.setContent(createPopupContent(props));
     if (popupElement) {
-      var newScrollContainer = popupElement.querySelector('.aircraft-info');
+      var newScrollContainer = popupElement.querySelector(".aircraft-info");
       if (newScrollContainer) {
         newScrollContainer.scrollTop = scrollPosition;
       }
@@ -399,21 +508,21 @@
   marker.bindPopup(popup);
 
   // Add popup open/close handlers
-  popup.on('add', async function () {
+  popup.on("add", async function () {
     // Get the map from the popup's target (marker)
     const map = popup._source._map;
     if (!map) {
-      console.warn('No map instance found for popup source');
+      console.warn("No map instance found for popup source");
       return;
     }
     await updateDistanceLine(marker.getLatLng(), map);
   });
 
-  popup.on('remove', function () {
+  popup.on("remove", function () {
     try {
       const map = popup._source._map;
       if (!map) {
-        console.warn('No map instance found for popup source');
+        console.warn("No map instance found for popup source");
         return;
       }
       if (distanceLine && map.hasLayer(distanceLine)) {
@@ -423,12 +532,12 @@
         distanceMarker.remove();
       }
     } catch (error) {
-      console.error('Error removing distance layers:', error);
+      console.error("Error removing distance layers:", error);
     }
   });
 
   // Add click handler to both the marker and the clickable div
-  marker.on('click', function (e) {
+  marker.on("click", function (e) {
     e.originalEvent.stopPropagation();
     if (!popup.isOpen()) {
       popup.openOn(marker);
@@ -436,9 +545,10 @@
   });
 
   // Add click handler to the clickable div
-  icon.options.html = icon.options.html.replace('</div>',
-    `<div class="clickable-overlay" onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`
+  icon.options.html = icon.options.html.replace(
+    "</div>",
+    `<div class="clickable-overlay" onclick="this.parentElement.parentElement._leaflet_events.click[0].fn(event)"></div></div>`,
   );
 
   return marker;
-}
+};

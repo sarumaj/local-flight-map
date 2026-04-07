@@ -1,4 +1,5 @@
-# pyright: basic
+# type: basic
+from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
@@ -32,7 +33,7 @@ async def adsbexchange_feeder_client_empty():
         await client.close()
 
 
-def get_mock_aircraft_data():
+def get_mock_aircraft_data() -> Dict[str, Any]:
     """Helper function to get complete mock aircraft data"""
     return {
         "hex": "a83547",
@@ -90,14 +91,14 @@ def get_mock_aircraft_data():
     }
 
 
-def get_mock_response_data():
+def get_mock_response_data() -> Dict[str, Any]:
     """Helper function to get complete mock response data"""
     return {"aircraft": [get_mock_aircraft_data()], "messages": "No error", "now": 1678901234}
 
 
 class TestAdsbExchangeFeederClient:
     @pytest.mark.asyncio
-    async def test_get_aircraft_from_adsbexchange_feeder(self, adsbexchange_feeder_client):
+    async def test_get_aircraft_from_adsbexchange_feeder(self, adsbexchange_feeder_client: AdsbExchangeFeederClient):
         # Mock response data
         mock_data = get_mock_response_data()
 
@@ -181,13 +182,17 @@ class TestAdsbExchangeFeederClient:
                 mock_session.get.assert_called_once_with("/uuid/?feed=test-uuid")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_from_adsbexchange_feeder_no_uuid(self, adsbexchange_feeder_client_empty):
+    async def test_get_aircraft_from_adsbexchange_feeder_no_uuid(
+        self, adsbexchange_feeder_client_empty: AdsbExchangeFeederClient
+    ):
         # Test that it raises ValueError
         with pytest.raises(ValueError):
             await adsbexchange_feeder_client_empty.get_aircraft_from_adsbexchange_feeder()
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_from_adsbexchange_feeder_not_found(self, adsbexchange_feeder_client):
+    async def test_get_aircraft_from_adsbexchange_feeder_not_found(
+        self, adsbexchange_feeder_client: AdsbExchangeFeederClient
+    ):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
@@ -197,7 +202,7 @@ class TestAdsbExchangeFeederClient:
                 history=(),
                 status=404,
                 message="Not Found",
-                headers={},  # pyright: ignore[reportArgumentType]
+                headers={},  # type: ignore[reportArgumentType]
             )
         )
         mock_response.content_type = "text/html"
@@ -219,7 +224,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
+        geojson = aircraft.to_geojson()  # type: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is not None
@@ -287,7 +292,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
+        geojson = aircraft.to_geojson()  # type: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is None
@@ -300,7 +305,7 @@ class TestAircraftPropertiesFromFeeder:
         aircraft = AircraftPropertiesFromFeeder.from_dict(aircraft_data)
 
         # Test to_geojson method
-        geojson = aircraft.to_geojson()  # pyright: ignore[reportAttributeAccessIssue]
+        geojson = aircraft.to_geojson()  # type: ignore[reportAttributeAccessIssue]
 
         # Verify the result
         assert geojson is not None
@@ -331,7 +336,7 @@ class TestAdsbExchangeFeederResponse:
 
     def test_to_geojson_empty_aircraft(self):
         # Create test data with empty aircraft list
-        response_data = {"aircraft": [], "messages": "No error", "now": 1678901234}
+        response_data = cast(Dict[str, Any], {"aircraft": [], "messages": "No error", "now": 1678901234})
         response = AdsbExchangeFeederResponse.from_dict(response_data)
 
         # Test to_geojson method

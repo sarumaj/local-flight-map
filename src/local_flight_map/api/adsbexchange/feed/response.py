@@ -228,9 +228,9 @@ class AdsbExchangeFeederResponse(ResponseObject):
         return cls(
             aircraft=[
                 AircraftPropertiesFromFeeder.from_dict(
-                    aircraft  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    aircraft  # type: ignore[reportArgumentType, reportUnknownArgumentType]
                 )
-                for aircraft in (data["aircraft"] or [])  # pyright: ignore[reportUnknownVariableType]
+                for aircraft in (data["aircraft"] or [])  # type: ignore[reportUnknownVariableType]
             ],
             messages=data["messages"],
             now=data["now"],

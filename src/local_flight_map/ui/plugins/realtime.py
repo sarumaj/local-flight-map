@@ -41,4 +41,4 @@ class Realtime(FoliumRealtime):
         """
         options = JsCode.get_options(prefix="realtime_")
         options.update(kwargs)
-        FoliumRealtime.__init__(self, *args, **options)  # pyright: ignore[reportUnknownMemberType]
+        FoliumRealtime.__init__(self, *args, **options)  # type: ignore[reportUnknownMemberType]

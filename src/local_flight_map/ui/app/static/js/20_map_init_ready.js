@@ -3,10 +3,10 @@
  * This script listens for the 'mapElementReady' event and checks for the map's availability
  * Once the map is found, it dispatches a 'mapReady' event with the map instance
  */
-window.addEventListener('mapElementReady', (e) => {
+window.addEventListener("mapElementReady", (e) => {
   const mapId = e.detail.mapId;
   if (!mapId) {
-    console.error('No map ID provided in mapElementReady event');
+    console.error("No map ID provided in mapElementReady event");
     return;
   }
 
@@ -31,19 +31,21 @@ window.addEventListener('mapElementReady', (e) => {
   checkInterval = setInterval(function () {
     try {
       const map = window[mapId];
-      if (map && typeof L !== 'undefined' && L.Map && map instanceof L.Map) {
+      if (map && typeof L !== "undefined" && L.Map && map instanceof L.Map) {
         cleanup();
-        window.dispatchEvent(new CustomEvent("mapReady", { detail: { map: map } }));
+        window.dispatchEvent(
+          new CustomEvent("mapReady", { detail: { map: map } }),
+        );
       }
     } catch (error) {
-      console.error('Error checking map initialization:', error);
+      console.error("Error checking map initialization:", error);
       cleanup();
     }
   }, 100);
 
   // Clear interval after 30 seconds if map is not found
   timeoutId = setTimeout(() => {
-    console.warn('Map initialization timed out after 30 seconds');
+    console.warn("Map initialization timed out after 30 seconds");
     cleanup();
   }, 30000);
 });

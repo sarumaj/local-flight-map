@@ -46,4 +46,4 @@ class MarkerCluster(FoliumMarkerCluster):
             },
         )
         options.update(kwargs)
-        FoliumMarkerCluster.__init__(self, *args, **options)  # pyright: ignore[reportUnknownMemberType]
+        FoliumMarkerCluster.__init__(self, *args, **options)  # type: ignore[reportUnknownMemberType]

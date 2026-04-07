@@ -14,9 +14,7 @@ import folium
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from fastapi.responses import ORJSONResponse as JSONResponse
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -89,7 +87,7 @@ class MapInterface:
 
         # Add session authenticator
         self._app.add_middleware(
-            SessionAuthenticator,  # pyright: ignore[reportArgumentType]
+            SessionAuthenticator,  # type: ignore[reportArgumentType]
             paths={
                 re.compile(r"^/service/aircrafts"): MapInterface.EmptyFeatureCollection(
                     headers={"X-Status-Code": "403"}
@@ -112,7 +110,7 @@ class MapInterface:
         )
 
         # Add request logger
-        self._app.add_middleware(RequestLoggerMiddleware)  # pyright: ignore[reportArgumentType]
+        self._app.add_middleware(RequestLoggerMiddleware)  # type: ignore[reportArgumentType]
 
         # Mount static files
         self._app.mount("/ui/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
@@ -126,6 +124,7 @@ class MapInterface:
         self._app.add_api_route("/auth/status", self.check_auth_status, methods=["GET"])
         self._app.add_api_route("/service/health", self.health, methods=["GET"])
         self._app.add_api_route("/service/aircrafts", self.get_aircrafts_geojson, methods=["GET"])
+        self._app.add_api_route("/service/aircraft/photo/{registration}", self.get_aircraft_photo, methods=["GET"])
 
         # Add main map route
         self._app.add_api_route("/", self.get_map, methods=["GET"])
@@ -149,7 +148,7 @@ class MapInterface:
         )
 
         self._map.fit_bounds(self._config.get_map_bounds())
-        self._map.options["radius"] = self._config.map_radius  # pyright: ignore[reportUnknownMemberType]
+        self._map.options["radius"] = self._config.map_radius  # type: ignore[reportUnknownMemberType]
 
         self._layers = MapLayers(self._map, self._config)
         self._layers.add_to_map()
@@ -181,9 +180,7 @@ class MapInterface:
         <link rel="stylesheet" href="/ui/static/css/main.css">
         """
         root = self._map.get_root()
-        root.header.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
-            folium.Element(css)
-        )
+        root.header.add_child(folium.Element(css))  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
 
         # Add static scripts
         static_scripts = list((Path(__file__).parent / "static" / "js").glob("*.js"))
@@ -192,12 +189,12 @@ class MapInterface:
             raise FileNotFoundError("No static scripts found")
 
         for script in static_scripts:
-            root.html.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            root.html.add_child(  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
                 folium.Element(f'<script src="/ui/static/js/{script.name}"></script>')
             )
 
         # Add inline map initialization script
-        root.html.add_child(  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+        root.html.add_child(  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
             folium.Element(f'<script>{Path(__file__).with_suffix(".js").read_text()}</script>')
         )
 
@@ -211,8 +208,9 @@ class MapInterface:
         Returns:
             HTMLResponse: The map HTML page.
         """
+        _ = request
         return HTMLResponse(
-            content=self._map.get_root().render(),  # pyright: ignore[reportUnknownMemberType]
+            content=self._map.get_root().render(),  # type: ignore[reportUnknownMemberType]
             status_code=200,
         )
 
@@ -310,6 +308,30 @@ class MapInterface:
             logger.error(f"Error getting aircraft data: {e}", exc_info=True)
             return MapInterface.EmptyFeatureCollection(headers={"X-Status-Code": "500"})
 
+    async def get_aircraft_photo(self, request: Request) -> Response:
+        """
+        Get the photo URL for a given aircraft registration.
+
+        Args:
+            request: The HTTP request containing the aircraft registration as a query parameter.
+
+        Returns:
+            The photo data as bytes if found, otherwise a response indicating the photo was not found.
+        """
+        registration = request.query_params.get("registration") or request.path_params.get("registration")
+        if not registration:
+            return RedirectResponse(
+                url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "400"}
+            )
+
+        photo_response = await self._clients.jetphotos_client.get_aircraft_photo(registration)
+        if not photo_response:
+            return RedirectResponse(
+                url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "404"}
+            )
+
+        return Response(content=photo_response.photo_data, media_type=photo_response.content_type, status_code=200)
+
     async def handle_cookie_consent(self, request: Request) -> Union[JSONResponse, RedirectResponse]:
         """
         Handle cookie consent from the client.
@@ -329,7 +351,7 @@ class MapInterface:
                 consent = request.query_params.get("consent", "").lower() == "true"
                 if consent:
                     request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
-                    return self._apply_cookie_consent(  # pyright: ignore[reportReturnType]
+                    return self._apply_cookie_consent(  # type: ignore[reportReturnType]
                         RedirectResponse(url="/", status_code=303),
                     )
 
@@ -339,7 +361,7 @@ class MapInterface:
             data = await request.json()
             if data.get("consent") is True:
                 request.session.update(dict.fromkeys(["cookie_consent", "authenticated"], True))
-                return self._apply_cookie_consent(  # pyright: ignore[reportReturnType]
+                return self._apply_cookie_consent(  # type: ignore[reportReturnType]
                     JSONResponse(content={"status": "ok"}, status_code=200),
                 )
 

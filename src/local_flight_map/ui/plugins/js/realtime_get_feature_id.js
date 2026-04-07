@@ -7,25 +7,25 @@
  */
 (feature) => {
   if (!feature) {
-    console.warn('No feature provided to getFeatureId');
+    console.warn("No feature provided to getFeatureId");
     return null;
   }
 
   try {
     if (!feature.properties) {
-      console.warn('Feature has no properties');
+      console.warn("Feature has no properties");
       return null;
     }
 
     const id = feature.properties.icao24_code;
     if (!id) {
-      console.warn('Feature has no icao24_code property');
+      console.warn("Feature has no icao24_code property");
       return null;
     }
 
     return id;
   } catch (error) {
-    console.error('Error getting feature ID:', error);
+    console.error("Error getting feature ID:", error);
     return null;
   }
-}
+};

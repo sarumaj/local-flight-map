@@ -36,7 +36,7 @@ class JsCode(FoliumJsCode):
         self._path = self.js_dir / script
         if not self._path.exists():
             raise FileNotFoundError(f"File {self._path} not found")
-        FoliumJsCode.__init__(self, self._path.read_text())
+        FoliumJsCode.__init__(self, self._path.read_text().rstrip().rstrip(";"))
 
     @classmethod
     def get_options(

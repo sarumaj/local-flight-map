@@ -192,7 +192,7 @@ class DraggableBBox {
         const individualMarkers = Array.from(markerPane.children).filter(
           (child) =>
             child.classList.contains("leaflet-marker-icon") &&
-            !child.classList.contains("custom-cluster")
+            !child.classList.contains("custom-cluster"),
         ).length;
 
         // Count markers in clusters
@@ -377,7 +377,7 @@ class DraggableBBox {
       const endPoint = this.calculateIntersectionPoint(
         center,
         angleRad,
-        bounds
+        bounds,
       );
 
       // Calculate distance for beam width adjustment
@@ -485,7 +485,7 @@ class DraggableBBox {
       // Remove marker selection event listener
       window.removeEventListener(
         "markerSelected",
-        this.updateBeamLineForMarker
+        this.updateBeamLineForMarker,
       );
     } catch (error) {
       console.error("Error destroying draggable bbox:", error);
@@ -528,7 +528,7 @@ class DraggableBBox {
       window.dispatchEvent(
         new CustomEvent("boundsUpdated", {
           detail: { bounds: this.getBoundsObject(bounds) },
-        })
+        }),
       );
     } catch (error) {
       console.error("Error updating bounding box:", error);
@@ -676,7 +676,7 @@ class DraggableBBox {
 
       const newBounds = L.latLngBounds(
         L.latLng(newCenter.lat - size.lat / 2, newCenter.lng - size.lng / 2),
-        L.latLng(newCenter.lat + size.lat / 2, newCenter.lng + size.lng / 2)
+        L.latLng(newCenter.lat + size.lat / 2, newCenter.lng + size.lng / 2),
       );
 
       this.rectangle.setBounds(newBounds);
@@ -690,7 +690,7 @@ class DraggableBBox {
         const endPoint = this.calculateIntersectionPoint(
           newCenter,
           angleRad,
-          newBounds
+          newBounds,
         );
         this.beamLine.setLatLngs([newCenter, endPoint]);
       }
@@ -773,7 +773,7 @@ window.addEventListener("mapReady", async (e) => {
 
     const initialBounds = L.latLngBounds(
       L.latLng(49.31666666666666, 7.016168165393562),
-      L.latLng(50.983333333333334, 9.61716523460644)
+      L.latLng(50.983333333333334, 9.61716523460644),
     );
 
     window.draggableBBox = new DraggableBBox(map, initialBounds);

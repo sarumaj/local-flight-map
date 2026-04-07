@@ -158,11 +158,11 @@ class States(ResponseObject):
             time=data["time"],
             states=[
                 (
-                    StateVector.from_dict(state)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    StateVector.from_dict(state)  # type: ignore[reportArgumentType, reportUnknownArgumentType]
                     if isinstance(state, dict)
-                    else StateVector.from_list(state)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    else StateVector.from_list(state)  # type: ignore[reportArgumentType, reportUnknownArgumentType]
                 )
-                for state in (data["states"] or [])  # pyright: ignore[reportUnknownVariableType]
+                for state in (data["states"] or [])  # type: ignore[reportUnknownVariableType]
             ],
         )
 
@@ -270,11 +270,11 @@ class FlightTrack(ResponseObject):
             callsign=data["callsign"],
             path=[
                 (
-                    Waypoint.from_dict(waypoint)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    Waypoint.from_dict(waypoint)  # type: ignore[reportArgumentType, reportUnknownArgumentType]
                     if isinstance(waypoint, dict)
-                    else Waypoint.from_list(waypoint)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
+                    else Waypoint.from_list(waypoint)  # type: ignore[reportArgumentType, reportUnknownArgumentType]
                 )
-                for waypoint in (data["path"] or [])  # pyright: ignore[reportUnknownVariableType]
+                for waypoint in (data["path"] or [])  # type: ignore[reportUnknownVariableType]
             ],
         )
 

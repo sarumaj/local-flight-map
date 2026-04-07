@@ -57,12 +57,12 @@ class AdsbExchangeFeederClient(BaseClient):
             ValueError: If the ADSB Exchange feeder UUID is not set.
         """
         if (
-            not self._config.adsbexchange_feeder_uuid  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            not self._config.adsbexchange_feeder_uuid  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
         ):
             raise ValueError("ADSB Exchange feeder UUID is not set")
 
         async with self._session.get(
-            f"/uuid/?feed={self._config.adsbexchange_feeder_uuid}"  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+            f"/uuid/?feed={self._config.adsbexchange_feeder_uuid}"  # type: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
         ) as response:
             data = await self._handle_response(response)
             return AdsbExchangeFeederResponse.from_dict(data) if data else None

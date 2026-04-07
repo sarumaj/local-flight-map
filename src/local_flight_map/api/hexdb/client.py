@@ -72,7 +72,7 @@ class HexDbClient(BaseClient):
         """
         async with self._session.get(f"/api/v1/route/icao/{callsign.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return RouteInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]
+            return RouteInformation.from_dict(data) if data else None  # type: ignore[reportReturnType]
 
     @alru_cache(maxsize=1000)
     async def get_airport_information_from_hexdb(self, icao24: str) -> Optional[AirportInformation]:
@@ -90,7 +90,7 @@ class HexDbClient(BaseClient):
         """
         async with self._session.get(f"/api/v1/airport/icao/{icao24.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return AirportInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]
+            return AirportInformation.from_dict(data) if data else None  # type: ignore[reportReturnType]
 
     @alru_cache(maxsize=1000)
     async def get_aircraft_information_from_hexdb(self, icao24: str) -> Optional[AircraftInformation]:
@@ -108,4 +108,4 @@ class HexDbClient(BaseClient):
         """
         async with self._session.get(f"/api/v1/aircraft/{icao24.lower().strip()}") as response:
             data = await self._handle_response(response)
-            return AircraftInformation.from_dict(data) if data else None  # pyright: ignore[reportReturnType]
+            return AircraftInformation.from_dict(data) if data else None  # type: ignore[reportReturnType]

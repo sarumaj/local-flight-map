@@ -1,4 +1,5 @@
-# pyright: basic
+# type: basic
+from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import aiohttp
@@ -24,7 +25,7 @@ async def hexdb_client():
 
 class TestHexDbClient:
     @pytest.mark.asyncio
-    async def test_get_aircraft_information(self, hexdb_client):
+    async def test_get_aircraft_information(self, hexdb_client: HexDbClient):
         # Mock response data
         mock_data = {
             "ICAOTypeCode": "B738",
@@ -66,17 +67,20 @@ class TestHexDbClient:
                 mock_session.get.assert_called_once_with("/api/v1/aircraft/a83547")
 
     @pytest.mark.asyncio
-    async def test_get_airport_information(self, hexdb_client):
+    async def test_get_airport_information(self, hexdb_client: HexDbClient):
         # Mock response data
-        mock_data = {
-            "airport": "KJFK",
-            "country_code": "US",
-            "iata": "JFK",
-            "icao": "KJFK",
-            "latitude": 40.6413,
-            "longitude": -73.7781,
-            "region_name": "New York",
-        }
+        mock_data = cast(
+            Dict[str, Any],
+            {
+                "airport": "KJFK",
+                "country_code": "US",
+                "iata": "JFK",
+                "icao": "KJFK",
+                "latitude": 40.6413,
+                "longitude": -73.7781,
+                "region_name": "New York",
+            },
+        )
 
         # Mock the session's get method
         mock_response = AsyncMock()
@@ -107,9 +111,16 @@ class TestHexDbClient:
                 mock_session.get.assert_called_once_with("/api/v1/airport/icao/kjfk")
 
     @pytest.mark.asyncio
-    async def test_get_route_information(self, hexdb_client):
+    async def test_get_route_information(self, hexdb_client: HexDbClient):
         # Mock response data
-        mock_data = {"flight": "SWA123", "route": "KJFK-KLAX", "updatetime": 1678901234}
+        mock_data = cast(
+            Dict[str, Any],
+            {
+                "flight": "SWA123",
+                "route": "KJFK-KLAX",
+                "updatetime": 1678901234,
+            },
+        )
 
         # Mock the session's get method
         mock_response = AsyncMock()
@@ -137,7 +148,7 @@ class TestHexDbClient:
                 mock_session.get.assert_called_once_with("/api/v1/route/icao/swa123")
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_information_not_found(self, hexdb_client):
+    async def test_get_aircraft_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
@@ -157,7 +168,7 @@ class TestHexDbClient:
                 assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_airport_information_not_found(self, hexdb_client):
+    async def test_get_airport_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
@@ -176,7 +187,7 @@ class TestHexDbClient:
                 assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_route_information_not_found(self, hexdb_client):
+    async def test_get_route_information_not_found(self, hexdb_client: HexDbClient):
         # Mock the session's get method to return 404
         mock_response = AsyncMock()
         mock_response.status = 404
@@ -196,14 +207,14 @@ class TestHexDbClient:
                 assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_aircraft_information_error(self, hexdb_client):
+    async def test_get_aircraft_information_error(self, hexdb_client: HexDbClient):
         # Mock the session's get method to raise an error
         mock_response = AsyncMock()
         mock_response.status = 500
         mock_raise_for_status = Mock(
             side_effect=aiohttp.ClientResponseError(
                 request_info=Mock(real_url="https://api.hexdb.com/aircraft/icao/a83547"),
-                history=None,  # pyright: ignore[reportArgumentType]
+                history=None,  # type: ignore[reportArgumentType]
                 status=500,
                 message="Server Error",
             )

@@ -233,8 +233,8 @@ class AdsbExchangeResponse(ResponseObject):
         """
         return cls(
             ac=[
-                AircraftProperties.from_dict(aircraft)  # pyright: ignore[reportArgumentType, reportUnknownArgumentType]
-                for aircraft in (data["ac"] or [])  # pyright: ignore[reportUnknownVariableType]
+                AircraftProperties.from_dict(aircraft)  # type: ignore[reportArgumentType, reportUnknownArgumentType]
+                for aircraft in (data["ac"] or [])  # type: ignore[reportUnknownVariableType]
             ],
             msg=data["msg"],
             now=data["now"],

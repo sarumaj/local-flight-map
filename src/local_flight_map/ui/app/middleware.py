@@ -8,8 +8,7 @@ import time
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 import fastapi
-from fastapi.responses import ORJSONResponse as JSONResponse
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 

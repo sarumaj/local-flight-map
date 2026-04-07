@@ -6,16 +6,16 @@
  */
 (cluster) => {
   var count = cluster.getChildCount();
-  var size = Math.min(40 + (count * 2), 160);
+  var size = Math.min(40 + count * 2, 160);
 
   return L.divIcon({
     html: `
       <div class="marker-cluster" style="width: ${size}px; height: ${size}px;">
         <img src="/ui/static/icons/clouds.png" class="marker-cluster-icon" />
-        <div class="marker-cluster-count" style="font-size: ${Math.min(16 + (count * 0.5), 24)}px;">${count}</div>
+        <div class="marker-cluster-count" style="font-size: ${Math.min(16 + count * 0.5, 24)}px;">${count}</div>
       </div>
     `,
-    className: 'custom-cluster',
-    iconSize: L.point(size, size)
+    className: "custom-cluster",
+    iconSize: L.point(size, size),
   });
-}
+};

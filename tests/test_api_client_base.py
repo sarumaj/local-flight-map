@@ -1,6 +1,7 @@
-# pyright: basic
+# type: basic
 import math
 from dataclasses import dataclass
+from typing import Any, Dict, List, cast
 from unittest.mock import AsyncMock, Mock
 
 import aiohttp
@@ -20,72 +21,72 @@ class TestLocation:
         # Test case 1: North bearing (0 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=1, longitude=0)
-        assert loc1.get_angle_to(loc2) == pytest.approx(0, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(0, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 2: East bearing (90 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=0, longitude=1)
-        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 3: South bearing (180 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=-1, longitude=0)
-        assert loc1.get_angle_to(loc2) == pytest.approx(180, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(180, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 4: West bearing (270 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=0, longitude=-1)
-        assert loc1.get_angle_to(loc2) == pytest.approx(270, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(270, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 5: Northeast bearing (45 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=1, longitude=1)
         # Due to Earth's curvature, the bearing isn't exactly 45 degrees
-        assert loc1.get_angle_to(loc2) == pytest.approx(45, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(45, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 6: Northwest bearing (315 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=1, longitude=-1)
-        assert loc1.get_angle_to(loc2) == pytest.approx(315, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(315, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 7: Southeast bearing (135 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=-1, longitude=1)
-        assert loc1.get_angle_to(loc2) == pytest.approx(135, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(135, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 8: Southwest bearing (225 degrees)
         loc1 = Location(latitude=0, longitude=0)
         loc2 = Location(latitude=-1, longitude=-1)
-        assert loc1.get_angle_to(loc2) == pytest.approx(225, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(225, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 9: Same location (should be 0 degrees)
         loc1 = Location(latitude=45, longitude=-120)
-        assert loc1.get_angle_to(loc1) == pytest.approx(0, abs=0.01)
+        assert loc1.get_angle_to(loc1) == pytest.approx(0, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 10: Real-world example (San Francisco to New York)
         sf = Location(latitude=37.7749, longitude=-122.4194)
         ny = Location(latitude=40.7128, longitude=-74.0060)
         # Expected bearing is approximately 70 degrees (northeast)
-        assert sf.get_angle_to(ny) == pytest.approx(70, abs=1)
+        assert sf.get_angle_to(ny) == pytest.approx(70, abs=1)  # type: ignore[reportUnknownMemberType]
 
         # Test case 11: Cross the international date line
         loc1 = Location(latitude=0, longitude=179)
         loc2 = Location(latitude=0, longitude=-179)
         # Should calculate the shorter path across the date line
-        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 12: Near the poles
         loc1 = Location(latitude=89, longitude=0)
         loc2 = Location(latitude=89.5, longitude=90)  # Moving both north and east
         # At high latitudes, the bearing should be approximately 26.57 degrees
         # This is because the great circle path curves significantly towards the pole
-        assert loc1.get_angle_to(loc2) == pytest.approx(26.57, abs=0.01)
+        assert loc1.get_angle_to(loc2) == pytest.approx(26.57, abs=0.01)  # type: ignore[reportUnknownMemberType]
 
         # Test case 13: Pure eastward movement at high latitude
         loc1 = Location(latitude=89, longitude=0)
         loc2 = Location(latitude=89, longitude=1)  # Moving only east by 1 degree
         # The initial bearing should be approximately east
-        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=1)
+        assert loc1.get_angle_to(loc2) == pytest.approx(90, abs=1)  # type: ignore[reportUnknownMemberType]
 
 
 class TestBBox:
@@ -142,10 +143,10 @@ class TestResponseObject:
         assert data == {"name": "test", "value": 42}
 
     def test_from_dict(self):
-        data = {"name": "test", "value": 42}
+        data = cast(Dict[str, Any], {"name": "test", "value": 42})
         obj = self.SampleResponse.from_dict(data)
-        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
-        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.name == "test"  # type: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # type: ignore[reportAttributeAccessIssue]
 
     def test_to_json(self):
         obj = self.SampleResponse(name="test", value=42)
@@ -155,14 +156,14 @@ class TestResponseObject:
     def test_from_json(self):
         json_str = '{"name": "test", "value": 42}'
         obj = self.SampleResponse.from_json(json_str)
-        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
-        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.name == "test"  # type: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # type: ignore[reportAttributeAccessIssue]
 
     def test_from_list(self):
-        data = ["test", 42]
+        data = cast(List[Any], ["test", 42])
         obj = self.SampleResponse.from_list(data)
-        assert obj.name == "test"  # pyright: ignore[reportAttributeAccessIssue]
-        assert obj.value == 42  # pyright: ignore[reportAttributeAccessIssue]
+        assert obj.name == "test"  # type: ignore[reportAttributeAccessIssue]
+        assert obj.value == 42  # type: ignore[reportAttributeAccessIssue]
 
 
 class TestBaseClient:
@@ -170,8 +171,8 @@ class TestBaseClient:
     async def test_context_manager(self):
         client = BaseClient()
         async with client as c:
-            assert c._session is not None
-            assert isinstance(c._session, aiohttp.ClientSession)
+            assert c._session is not None  # type: ignore[reportPrivateUsage]
+            assert isinstance(c._session, aiohttp.ClientSession)  # type: ignore[reportPrivateUsage]
         assert hasattr(c, "_session") is False  # Session should be closed and deleted
 
     @pytest.mark.asyncio
@@ -183,7 +184,7 @@ class TestBaseClient:
             (),
             {"status": 404, "raise_for_status": mock_raise_for_status, "content_type": "application/json"},
         )
-        result = await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
+        result = await client._handle_response(mock_response)  # type: ignore[reportArgumentType]
         assert result is None
         mock_raise_for_status.assert_not_called()
 
@@ -202,7 +203,7 @@ class TestBaseClient:
                 "content_type": "application/json",
             },
         )
-        result = await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
+        result = await client._handle_response(mock_response)  # type: ignore[reportArgumentType]
         assert result == {"data": "test"}
         mock_json.assert_called_once()
         mock_raise_for_status.assert_called_once()
@@ -212,7 +213,7 @@ class TestBaseClient:
         client = BaseClient()
         mock_raise_for_status = Mock(
             side_effect=aiohttp.ClientResponseError(
-                request_info=None, history=None, status=500  # pyright: ignore[reportArgumentType]
+                request_info=None, history=None, status=500  # type: ignore[reportArgumentType]
             )
         )
         mock_response = type(
@@ -224,5 +225,5 @@ class TestBaseClient:
             },
         )
         with pytest.raises(aiohttp.ClientResponseError):
-            await client._handle_response(mock_response)  # pyright: ignore[reportArgumentType]
+            await client._handle_response(mock_response)  # type: ignore[reportArgumentType]
         mock_raise_for_status.assert_called_once()
