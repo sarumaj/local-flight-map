@@ -323,11 +323,16 @@ class MapInterface:
             return RedirectResponse(
                 url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "400"}
             )
-
-        photo_response = await self._clients.jetphotos_client.get_aircraft_photo(registration)
-        if not photo_response:
+        try:
+            photo_response = await self._clients.jetphotos_client.get_aircraft_photo(registration)
+            if not photo_response:
+                return RedirectResponse(
+                    url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "404"}
+                )
+        except Exception as e:
+            logger.error(f"Error getting aircraft photo for registration {registration}: {e}", exc_info=True)
             return RedirectResponse(
-                url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "404"}
+                url="/ui/static/img/unavailable.png", status_code=303, headers={"X-Status-Code": "500"}
             )
 
         return Response(content=photo_response.photo_data, media_type=photo_response.content_type, status_code=200)
