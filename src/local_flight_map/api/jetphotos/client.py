@@ -55,6 +55,7 @@ class JetPhotosClient:
             exc_tb: The traceback of the exception, if any
         """
         _ = (exc_type, exc_val, exc_tb)
+        await self.get_aircraft_photo.cache_close()
         self._scrapper.close()
 
     def _find_elem_by_xpath(self, body: str, xpath: str) -> Optional[str]:
@@ -81,7 +82,7 @@ class JetPhotosClient:
             ),
         )
 
-    @alru_cache(maxsize=25)
+    @alru_cache(maxsize=100)
     async def get_aircraft_photo(self, registration: str) -> Optional[JetPhotosResponse]:
         """
         Fetch the photo URL for a given aircraft registration.
