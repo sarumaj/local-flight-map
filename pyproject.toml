@@ -25,10 +25,10 @@ dependencies = [
     "fastapi==0.135.3",
     "folium==0.20.0",
     "itsdangerous==2.2.0",
-    "lxml==6.0.3",
+    "lxml==6.0.4",
     "nest-asyncio==1.6.0",
     "orjson==3.11.8",
-    "pydantic==2.12.5",
+    "pydantic==2.13.0",
     "pydantic-settings==2.13.1",
     "uvicorn==0.44.0"
 ]
