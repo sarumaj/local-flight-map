@@ -771,9 +771,18 @@ window.addEventListener("mapReady", async (e) => {
       throw new Error("No bounds in configuration");
     }
 
+    if (
+      !config.bounds.north ||
+      !config.bounds.south ||
+      !config.bounds.east ||
+      !config.bounds.west
+    ) {
+      throw new Error("Incomplete bounds in configuration");
+    }
+
     const initialBounds = L.latLngBounds(
-      L.latLng(49.31666666666666, 7.016168165393562),
-      L.latLng(50.983333333333334, 9.61716523460644),
+      L.latLng(config.bounds.south, config.bounds.west),
+      L.latLng(config.bounds.north, config.bounds.east),
     );
 
     window.draggableBBox = new DraggableBBox(map, initialBounds);

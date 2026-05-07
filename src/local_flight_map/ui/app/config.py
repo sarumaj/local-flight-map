@@ -5,9 +5,9 @@ Provides configuration classes and settings for the map interface.
 
 import logging
 from enum import Enum
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from ...api.base import BBox, Location
@@ -46,7 +46,7 @@ class MapConfig(BaseSettings):
     """
 
     map_center: Location = Field(
-        default_factory=lambda: Location(latitude=50.15, longitude=8.3166667), description="The center of the map"
+        default_factory=lambda: Location(latitude=49.8817048, longitude=8.6135195), description="The center of the map"
     )
     map_radius: float = Field(default=50, description="The radius of the map")
     map_zoom_start: int = Field(default=12, description="The zoom level of the map")
@@ -76,6 +76,32 @@ class MapConfig(BaseSettings):
         cli_avoid_json=True,
         cli_kebab_case=True,
     )
+
+    @field_validator("map_center", mode="before")
+    def parse_map_center(cls, value: Any) -> Any:
+        """
+        Parse the map center from a string.
+
+        Args:
+            value: The input value for the map center.
+
+        Returns:
+            The parsed Location object for the map center.
+
+        Raises:
+            ValueError: If the input value cannot be parsed into a Location.
+
+        Example:
+            If the input value is "49.8817048, 8.6135195", it will be parsed into Location(latitude=49.8817048, longitude=8.6135195).
+        """
+        if isinstance(value, str):
+            try:
+                lat_str, lon_str = value.split(",")
+                return Location(latitude=float(lat_str.strip()), longitude=float(lon_str.strip()))
+            except Exception as e:
+                raise ValueError(f"Invalid map_center format: {value}") from e
+
+        raise ValueError(f"Unsupported type for map_center: {type(value)}")
 
     @property
     def map_bbox(self) -> BBox:
