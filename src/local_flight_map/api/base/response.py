@@ -48,7 +48,7 @@ class ResponseObject:
                         defaults[field_name] = None
                 elif field_type.__origin__ is Union:
                     defaults[field_name] = None
-        defaults.update(data)
+        defaults.update({k: v for k, v in data.items() if k in cls.__annotations__})
         return cls(**defaults)
 
     def to_json(self) -> str:

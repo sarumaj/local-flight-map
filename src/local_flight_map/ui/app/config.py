@@ -94,6 +94,9 @@ class MapConfig(BaseSettings):
         Example:
             If the input value is "49.8817048, 8.6135195", it will be parsed into Location(latitude=49.8817048, longitude=8.6135195).
         """
+        if isinstance(value, Location):
+            return value
+
         if isinstance(value, str):
             try:
                 lat_str, lon_str = value.split(",")
