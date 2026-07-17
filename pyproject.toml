@@ -22,7 +22,7 @@ dependencies = [
     "asyncio==4.0.0",
     "async-lru==2.3.0",
     "cloudscraper==1.2.71",
-    "fastapi==0.138.1",
+    "fastapi==0.139.2",
     "folium==0.20.0",
     "itsdangerous==2.2.0",
     "lxml==6.1.1",
@@ -30,7 +30,7 @@ dependencies = [
     "orjson==3.11.9",
     "pydantic==2.13.4",
     "pydantic-settings==2.14.2",
-    "uvicorn==0.49.0"
+    "uvicorn==0.51.0"
 ]
 
 [project.scripts]
