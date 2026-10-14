@@ -22,7 +22,7 @@ dependencies = [
     "asyncio==4.0.0",
     "async-lru==2.3.0",
     "cloudscraper==1.2.71",
-    "fastapi==0.143.0",
+    "fastapi==0.143.1",
     "folium==0.20.0",
     "itsdangerous==2.2.0",
     "lxml==6.1.3",
