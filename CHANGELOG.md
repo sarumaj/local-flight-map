@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file. The release bot
 writes each version's section from the commits (Conventional Commits) and the hand-written
 Unreleased section.
 
+## 1.2.3 - 2026-11-23
+
+### Dependencies
+
+- update dependency pydantic to v2.14.4
+- update dependency pydantic-settings to v2.16.3
+
 ## 1.2.2 - 2026-11-06
 
 ### Dependencies
@@ -16,4 +23,3 @@ Unreleased section.
 - update dependency uvicorn to v0.53.0 (#61)
 - update dependency lxml to v6.1.1 (#53)
 - update dependency pydantic-settings to v2.14.1 (#51)
-
